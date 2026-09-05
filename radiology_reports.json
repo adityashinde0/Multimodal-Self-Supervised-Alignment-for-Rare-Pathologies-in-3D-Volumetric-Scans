@@ -1,0 +1,57 @@
+[
+  {
+    "case_id": "CASE_000",
+    "pathology": "Lymphangioleiomyomatosis",
+    "volume_dimensions": [
+      16,
+      16,
+      16
+    ],
+    "volume_file": "volume_00_lymphangioleiomyomatosis.bin",
+    "clinical_radiology_report": "Thin-walled pulmonary cysts diffusely distributed throughout both lungs with preservation of lung volumes."
+  },
+  {
+    "case_id": "CASE_001",
+    "pathology": "Idiopathic Pulmonary Fibrosis",
+    "volume_dimensions": [
+      16,
+      16,
+      16
+    ],
+    "volume_file": "volume_01_idiopathic_pulmonary_fibrosis.bin",
+    "clinical_radiology_report": "Subpleural basilar reticular opacities with architectural distortion, traction bronchiectasis, and honeycombing."
+  },
+  {
+    "case_id": "CASE_002",
+    "pathology": "Glioblastoma Multiforme",
+    "volume_dimensions": [
+      16,
+      16,
+      16
+    ],
+    "volume_file": "volume_02_glioblastoma_multiforme.bin",
+    "clinical_radiology_report": "Large heterogeneous rim-enhancing necrotic intra-axial mass in the right frontal lobe with extensive surrounding vasogenic edema."
+  },
+  {
+    "case_id": "CASE_003",
+    "pathology": "Pulmonary Alveolar Proteinosis",
+    "volume_dimensions": [
+      16,
+      16,
+      16
+    ],
+    "volume_file": "volume_03_pulmonary_alveolar_proteinosis.bin",
+    "clinical_radiology_report": "Bilateral symmetric ground-glass opacities with superimposed interlobular septal thickening demonstrating crazy-paving pattern."
+  },
+  {
+    "case_id": "CASE_004",
+    "pathology": "Creutzfeldt-Jakob Disease",
+    "volume_dimensions": [
+      16,
+      16,
+      16
+    ],
+    "volume_file": "volume_04_creutzfeldt-jakob_disease.bin",
+    "clinical_radiology_report": "Bilateral symmetric hyperintensity in the caudate nuclei and anterior putamina on diffusion-weighted imaging (cortical ribboning)."
+  }
+]
