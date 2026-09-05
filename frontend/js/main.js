@@ -28,55 +28,52 @@ document.querySelectorAll("[data-scroll-to]").forEach(btn => {
   });
 });
 
-/* Helper: Render a 16x16 slice array into a smooth canvas */
+/* Helper: Render a 16x16 slice array into a crisp pixel matrix canvas */
 function renderSliceToCanvas(canvas, slice2d, highlightBox = null) {
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#0B0E11";
+  ctx.fillStyle = "#070A0D";
   ctx.fillRect(0, 0, W, H);
 
-  // Draw offscreen 16x16 buffer
-  const offCanvas = document.createElement("canvas");
-  offCanvas.width = 16;
-  offCanvas.height = 16;
-  const offCtx = offCanvas.getContext("2d");
-  const imgData = offCtx.createImageData(16, 16);
+  const pad = 24;
+  const cellSize = (W - pad * 2) / 16;
 
+  // Render discrete 16x16 pixel cells with high contrast
   for (let r = 0; r < 16; r++) {
     for (let c = 0; c < 16; c++) {
       const val = slice2d[r][c];
-      const idx = (r * 16 + c) * 4;
-      imgData.data[idx + 0] = val; // R
-      imgData.data[idx + 1] = val; // G
-      imgData.data[idx + 2] = val; // B
-      imgData.data[idx + 3] = 255; // A
+      ctx.fillStyle = `rgb(${val},${val},${val})`;
+      ctx.fillRect(pad + c * cellSize, pad + r * cellSize, cellSize, cellSize);
     }
   }
-  offCtx.putImageData(imgData, 0, 0);
 
-  // Draw smoothed onto viewport
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(offCanvas, 20, 20, W - 40, H - 40);
+  // Draw 16x16 discrete lattice grid lines
+  ctx.strokeStyle = "rgba(111, 156, 150, 0.15)";
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 16; i++) {
+    const pos = pad + i * cellSize;
+    ctx.beginPath(); ctx.moveTo(pos, pad); ctx.lineTo(pos, H - pad); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad, pos); ctx.lineTo(W - pad, pos); ctx.stroke();
+  }
 
-  // Medical scale & contour grid
-  ctx.strokeStyle = "rgba(111, 156, 150, 0.2)";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(20, 20, W - 40, H - 40);
+  // Medical border & contour
+  ctx.strokeStyle = "rgba(111, 156, 150, 0.45)";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(pad, pad, W - pad * 2, H - pad * 2);
 
   // Crosshair
-  ctx.strokeStyle = "rgba(236, 232, 223, 0.15)";
+  ctx.strokeStyle = "rgba(201, 122, 46, 0.4)";
   ctx.beginPath();
-  ctx.moveTo(W / 2, 20); ctx.lineTo(W / 2, H - 20);
-  ctx.moveTo(20, H / 2); ctx.lineTo(W - 20, H / 2);
+  ctx.moveTo(W / 2, pad); ctx.lineTo(W / 2, H - pad);
+  ctx.moveTo(pad, H / 2); ctx.lineTo(W - pad, H / 2);
   ctx.stroke();
 
   // Pathology Region of Interest (ROI) marker
-  ctx.strokeStyle = "rgba(201, 122, 46, 0.75)";
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([4, 4]);
-  ctx.strokeRect(W * 0.35, H * 0.35, W * 0.3, H * 0.3);
+  ctx.strokeStyle = "rgba(201, 122, 46, 0.9)";
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([5, 4]);
+  ctx.strokeRect(pad + 4 * cellSize, pad + 4 * cellSize, 8 * cellSize, 8 * cellSize);
   ctx.setLineDash([]);
 }
 
@@ -468,20 +465,91 @@ function renderSliceToCanvas(canvas, slice2d, highlightBox = null) {
 })();
 
 /* =========================================================================
-   2. INTAKE — 2D canvas slice viewer with real case selector & planes
+   2. INTAKE — High-Definition Clinical Radiology Scan & Native Tensor Matrix
 ========================================================================= */
 (function intakeScene() {
   const canvas = document.getElementById("intakeCanvas");
+  const hdImg = document.getElementById("intakeHdImage");
   const caseSelect = document.getElementById("caseSelect");
   let currentCase = PS007_CASES[0];
   let currentPlane = "axial";
+  let scanDisplayMode = "hd"; // "hd" | "native"
+
+  const hudData = [
+    {
+      tl: "FOV: 350mm<br>WINDOW: LUNG (W:1500 L:-600)",
+      tr: "AXIAL HRCT SLICE<br>THICKNESS: 1.0mm",
+      bl: "RESOLUTION: 1024×1024 HD<br>AUTHENTIC CLINICAL SCAN",
+      br: "DIFFUSE CYSTS ROI"
+    },
+    {
+      tl: "FOV: 350mm<br>WINDOW: LUNG (W:1500 L:-600)",
+      tr: "AXIAL HRCT SLICE<br>THICKNESS: 1.5mm",
+      bl: "RESOLUTION: 1024×1024 HD<br>AUTHENTIC CLINICAL SCAN",
+      br: "HONEYCOMBING ROI"
+    },
+    {
+      tl: "SEQUENCE: T1+C GADOLINIUM<br>CONTRAST ENHANCED",
+      tr: "AXIAL BRAIN MRI<br>THICKNESS: 3.0mm",
+      bl: "RESOLUTION: 1024×1024 HD<br>AUTHENTIC CLINICAL SCAN",
+      br: "NECROTIC RIM ROI"
+    },
+    {
+      tl: "FOV: 350mm<br>WINDOW: LUNG (W:1500 L:-600)",
+      tr: "AXIAL HRCT SLICE<br>THICKNESS: 1.0mm",
+      bl: "RESOLUTION: 1024×1024 HD<br>AUTHENTIC CLINICAL SCAN",
+      br: "CRAZY-PAVING ROI"
+    },
+    {
+      tl: "SEQUENCE: DWI (b=1000)<br>DIFFUSION RESTRICTION",
+      tr: "AXIAL BRAIN MRI<br>THICKNESS: 4.0mm",
+      bl: "RESOLUTION: 1024×1024 HD<br>AUTHENTIC CLINICAL SCAN",
+      br: "CORTICAL RIBBONING ROI"
+    }
+  ];
+
+  function updateHUD(caseIdx) {
+    const info = hudData[caseIdx] || hudData[0];
+    const tl = document.getElementById("hudTopLeft");
+    const tr = document.getElementById("hudTopRight");
+    const bl = document.getElementById("hudBottomLeft");
+    const br = document.getElementById("hudBottomRight");
+
+    if (scanDisplayMode === "hd") {
+      if (tl) tl.innerHTML = info.tl;
+      if (tr) tr.innerHTML = info.tr;
+      if (bl) bl.innerHTML = info.bl;
+      if (br) br.innerHTML = info.br;
+    } else {
+      if (tl) tl.innerHTML = "TENSOR: 16×16 FLOAT32<br>VOXEL RES: 1.0 VOX";
+      if (tr) tr.innerHTML = `${currentPlane.toUpperCase()} PLANE<br>INDEX: 08/15`;
+      if (bl) bl.innerHTML = "NATIVE 3D ARRAY<br>DISCRETE VOXEL MATRIX";
+      if (br) br.innerHTML = "ROI CELL";
+    }
+  }
 
   function renderCurrentIntake() {
-    let slice2d = currentCase.axial_slice;
-    if (currentPlane === "coronal") slice2d = currentCase.coronal_slice;
-    if (currentPlane === "sagittal") slice2d = currentCase.sagittal_slice;
+    const caseIdx = parseInt(caseSelect.value, 10);
+    currentCase = PS007_CASES[caseIdx];
 
-    renderSliceToCanvas(canvas, slice2d);
+    if (scanDisplayMode === "hd") {
+      if (hdImg) {
+        hdImg.style.display = "block";
+        hdImg.src = currentCase.hd_scan;
+      }
+      if (canvas) canvas.style.display = "none";
+    } else {
+      if (hdImg) hdImg.style.display = "none";
+      if (canvas) {
+        canvas.style.display = "block";
+        let slice2d = currentCase.axial_slice;
+        if (currentPlane === "coronal") slice2d = currentCase.coronal_slice;
+        if (currentPlane === "sagittal") slice2d = currentCase.sagittal_slice;
+        renderSliceToCanvas(canvas, slice2d);
+      }
+    }
+
+    updateHUD(caseIdx);
 
     // Update metadata card
     document.getElementById("metaCaseId").textContent = currentCase.case_id;
@@ -493,10 +561,20 @@ function renderSliceToCanvas(canvas, slice2d, highlightBox = null) {
   renderCurrentIntake();
 
   caseSelect.addEventListener("change", (e) => {
-    const idx = parseInt(e.target.value);
+    const idx = parseInt(e.target.value, 10);
     currentCase = PS007_CASES[idx];
     renderCurrentIntake();
     if (window.updateHeroVolume) window.updateHeroVolume(idx);
+  });
+
+  // Display mode buttons (HD vs Native Grid)
+  document.querySelectorAll("[data-smode]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-smode]").forEach(b => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      scanDisplayMode = btn.dataset.smode;
+      renderCurrentIntake();
+    });
   });
 
   document.querySelectorAll(".plane-tab").forEach(tab => {
@@ -719,8 +797,8 @@ function renderSliceToCanvas(canvas, slice2d, highlightBox = null) {
       renderSliceToCanvas(thumbCanvas, caseItem.axial_slice);
 
       card.innerHTML = `
-        <div style="position:relative; width:100%; height:180px; overflow:hidden;">
-          <img src="${thumbCanvas.toDataURL()}" style="width:100%; height:100%; object-fit:cover; display:block;">
+        <div style="position:relative; width:100%; height:180px; overflow:hidden; background:#000;">
+          <img src="${caseItem.hd_scan || thumbCanvas.toDataURL()}" style="width:100%; height:100%; object-fit:cover; display:block; image-rendering:-webkit-optimize-contrast;">
           <span class="result-card__rank">#${res.rank}</span>
         </div>
         <div style="padding:14px; background:var(--panel);">

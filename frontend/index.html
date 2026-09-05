@@ -192,9 +192,20 @@
         <option value="3">CASE_003: Pulmonary Alveolar Proteinosis (PAP)</option>
         <option value="4">CASE_004: Creutzfeldt-Jakob Disease (CJD)</option>
       </select>
-      <div class="scan-card__viewport">
+      <div class="scan-card__mode-bar">
+        <button class="scan-mode-btn is-active" data-smode="hd" id="btnModeHd">★ High-Resolution Clinical Scan</button>
+        <button class="scan-mode-btn" data-smode="native" id="btnModeNative">⬚ 16×16 Native Tensor Grid</button>
+      </div>
+
+      <div class="scan-card__viewport" id="intakeViewport">
+        <img id="intakeHdImage" class="scan-card__hd-image" src="assets/scans/case_000_lam.jpg" alt="Clinical Radiology Scan">
         <canvas id="intakeCanvas" width="420" height="420"></canvas>
         <div class="scan-card__crosshair"></div>
+
+        <div class="scan-card__hud-tl" id="hudTopLeft">FOV: 350mm<br>WINDOW: LUNG (W:1500 L:-600)</div>
+        <div class="scan-card__hud-tr" id="hudTopRight">AXIAL SLICE<br>THICKNESS: 1.0mm</div>
+        <div class="scan-card__hud-bl" id="hudBottomLeft">RESOLUTION: 1024×1024 HD<br>AUTHENTIC CLINICAL PACS</div>
+        <div class="scan-card__hud-br" id="hudBottomRight">PATHOLOGY ROI</div>
       </div>
       <div class="scan-card__tabs">
         <button class="plane-tab is-active" data-plane="axial">Axial (Z-plane)</button>

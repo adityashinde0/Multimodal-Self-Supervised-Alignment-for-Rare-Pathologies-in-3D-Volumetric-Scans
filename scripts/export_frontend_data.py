@@ -1,5 +1,8 @@
 import os
+import sys
 import json
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import torch
 import numpy as np
 from src.data.dataset import VolumeReportDataset
@@ -50,6 +53,14 @@ def export_data():
             # All 16 axial slices for 3D layered viewer
             axial_volume = [norm_vol[z, :, :].tolist() for z in range(16)]
 
+            hd_scans = [
+                "assets/scans/case_000_lam.jpg",
+                "assets/scans/case_001_ipf.jpg",
+                "assets/scans/case_002_gbm.jpg",
+                "assets/scans/case_003_pap.jpg",
+                "assets/scans/case_004_cjd.jpg",
+            ]
+
             cases_data.append({
                 "case_id": item["case_id"],
                 "pathology": item["pathology"],
@@ -60,7 +71,8 @@ def export_data():
                 "axial_slice": axial_slice,
                 "coronal_slice": coronal_slice,
                 "sagittal_slice": sagittal_slice,
-                "axial_volume": axial_volume
+                "axial_volume": axial_volume,
+                "hd_scan": hd_scans[i]
             })
 
     # Read benchmark metrics

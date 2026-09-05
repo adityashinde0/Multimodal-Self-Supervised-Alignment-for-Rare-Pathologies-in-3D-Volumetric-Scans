@@ -5652,7 +5652,8 @@ export const PS007_CASES = [
           164
         ]
       ]
-    ]
+    ],
+    "hd_scan": "assets/scans/case_000_lam.jpg"
   },
   {
     "case_id": "CASE_001",
@@ -11306,7 +11307,8 @@ export const PS007_CASES = [
           183
         ]
       ]
-    ]
+    ],
+    "hd_scan": "assets/scans/case_001_ipf.jpg"
   },
   {
     "case_id": "CASE_002",
@@ -16960,7 +16962,8 @@ export const PS007_CASES = [
           103
         ]
       ]
-    ]
+    ],
+    "hd_scan": "assets/scans/case_002_gbm.jpg"
   },
   {
     "case_id": "CASE_003",
@@ -22614,7 +22617,8 @@ export const PS007_CASES = [
           217
         ]
       ]
-    ]
+    ],
+    "hd_scan": "assets/scans/case_003_pap.jpg"
   },
   {
     "case_id": "CASE_004",
@@ -28268,7 +28272,8 @@ export const PS007_CASES = [
           171
         ]
       ]
-    ]
+    ],
+    "hd_scan": "assets/scans/case_004_cjd.jpg"
   }
 ];
 

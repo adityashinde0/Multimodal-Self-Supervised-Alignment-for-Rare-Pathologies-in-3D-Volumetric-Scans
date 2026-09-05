@@ -343,20 +343,85 @@ main{ position: relative; z-index: 2; }
 
 /* ---------- 1. Intake ---------- */
 .intake-grid{ display:grid; grid-template-columns: 420px 1fr; gap: 48px; align-items:start; }
+.scan-card__mode-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.scan-mode-btn {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  color: var(--ink-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+.scan-mode-btn:hover {
+  color: var(--ink);
+  border-color: var(--phosphor-dim);
+}
+.scan-mode-btn.is-active {
+  background: rgba(111, 156, 150, 0.18);
+  color: var(--phosphor);
+  border-color: var(--phosphor);
+  font-weight: 500;
+}
+
 .scan-card__viewport{
   position:relative;
-  background: var(--lightbox);
+  background: #000000;
+  border: 1px solid #1E2932;
   border-radius: 4px;
   overflow:hidden;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+  aspect-ratio: 1 / 1;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.55);
 }
-.scan-card__viewport canvas{ display:block; width:100%; height:auto; }
+.scan-card__hd-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+  image-rendering: -webkit-optimize-contrast;
+}
+.scan-card__viewport canvas{
+  display:none;
+  width:100%;
+  height:100%;
+  image-rendering: pixelated;
+}
+.scan-card__hud-tl,
+.scan-card__hud-tr,
+.scan-card__hud-bl,
+.scan-card__hud-br {
+  position: absolute;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: rgba(236, 232, 223, 0.65);
+  pointer-events: none;
+  z-index: 3;
+  line-height: 1.35;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+.scan-card__hud-tl { top: 8px; left: 8px; }
+.scan-card__hud-tr { top: 8px; right: 8px; text-align: right; }
+.scan-card__hud-bl { bottom: 8px; left: 8px; }
+.scan-card__hud-br { bottom: 8px; right: 8px; text-align: right; color: var(--wax); font-weight: 500; }
+
 .scan-card__crosshair{
   position:absolute; inset:0; pointer-events:none;
   background:
-    linear-gradient(var(--wax-dim), var(--wax-dim)) center / 100% 1px no-repeat,
-    linear-gradient(90deg, var(--wax-dim), var(--wax-dim)) center / 1px 100% no-repeat;
-  opacity: .55;
+    linear-gradient(rgba(201, 122, 46, 0.25), rgba(201, 122, 46, 0.25)) center / 100% 1px no-repeat,
+    linear-gradient(90deg, rgba(201, 122, 46, 0.25), rgba(201, 122, 46, 0.25)) center / 1px 100% no-repeat;
+  opacity: .75;
+  z-index: 2;
 }
 .scan-card__tabs{ display:flex; gap: 8px; margin-top: 14px; }
 .plane-tab{
