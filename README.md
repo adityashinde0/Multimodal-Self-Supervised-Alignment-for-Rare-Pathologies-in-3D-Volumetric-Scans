@@ -124,7 +124,8 @@ PS-007-GT/
 │   └── index.html           # Light-box single page application
 ├── scripts/
 │   ├── export_frontend_data.py # Real 3D scan & embedding exporter
-│   └── inspect_dataset.py   # Dataset validation & statistics checker
+│   ├── inspect_dataset.py   # Dataset validation & statistics checker
+│   └── run_survey.py        # Comprehensive 8-point system diagnostic audit
 ├── src/
 │   ├── data/
 │   │   └── dataset.py       # 3D raw volume loader & spatial augmentation
@@ -187,7 +188,15 @@ python run_experiments.py
 
 Results are printed to the console and automatically logged to `artifacts/metrics/benchmark_results.json` and `PROGRESS.md`.
 
-### 4. Run the Interactive Web Application
+### 4. Run Full System Diagnostic Audit
+
+Performs an automated 8-point inspection across 3D datasets, 3D-MAE masking, neural weights, live API, and benchmark invariants:
+
+```bash
+python scripts/run_survey.py
+```
+
+### 5. Run the Interactive Web Application
 
 Launch the full-stack radiology light-box web application:
 
