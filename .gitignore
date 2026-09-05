@@ -64,6 +64,3 @@ ehthumbs.db
 # PyTorch model checkpoints
 artifacts/checkpoints/*.pt
 *.pt
-
-# Reference prototypes
-ps007-frontend/
