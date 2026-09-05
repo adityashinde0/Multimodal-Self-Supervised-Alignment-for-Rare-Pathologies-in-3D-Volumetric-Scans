@@ -81,99 +81,347 @@ function renderSliceToCanvas(canvas, slice2d, highlightBox = null) {
 }
 
 /* =========================================================================
-   1. HERO — Three.js layered volumetric-style viewer with real volume slices
+   1. HERO — True 3D Volumetric Medical Workstation (Voxels, Slices, Patches)
 ========================================================================= */
 (function heroScene() {
   const canvas = document.getElementById("heroCanvas");
-  const frame = canvas.parentElement;
+  const frame = document.getElementById("heroViewerFrame") || canvas.parentElement;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-  camera.position.set(0, 0, 6.5);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
-  const group = new THREE.Group();
-  scene.add(group);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(3.4, 2.4, 4.4);
+  camera.lookAt(0, 0, 0);
+
+  // Lighting for shaded volumetric elements
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+  scene.add(ambientLight);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(5, 10, 7);
+  scene.add(dirLight);
+
+  const worldGroup = new THREE.Group();
+  scene.add(worldGroup);
 
   let activeCase = PS007_CASES[0];
-  const LAYERS = 16;
-  const planes = [];
+  let currentViewMode = "cloud"; // "cloud" | "slicer" | "patches"
+  let currentColormap = "radiology"; // "radiology" | "heatmap"
+  let isAutoRotating = true;
+  let activeSliceIdx = 8;
 
-  function makeSliceTexture(slice2d) {
+  // -------------------------------------------------------------
+  // A. 3D Bounding Cage & Coordinate Axes
+  // -------------------------------------------------------------
+  const CUBE_SIZE = 3.04; // 16 * 0.19
+  const boxGeo = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+  const boxEdges = new THREE.EdgesGeometry(boxGeo);
+  const boxLineMat = new THREE.LineBasicMaterial({
+    color: 0x2A3E48,
+    transparent: true,
+    opacity: 0.65
+  });
+  const cageMesh = new THREE.LineSegments(boxEdges, boxLineMat);
+  worldGroup.add(cageMesh);
+
+  // Subtle floor reference grid
+  const gridHelper = new THREE.GridHelper(CUBE_SIZE * 1.3, 8, 0x243640, 0x141E24);
+  gridHelper.position.y = -CUBE_SIZE / 2 - 0.1;
+  worldGroup.add(gridHelper);
+
+  // -------------------------------------------------------------
+  // B. Mode 1: 3D Voxel Cloud (4,096 Volumetric Density Nodes)
+  // -------------------------------------------------------------
+  const VOXELS_PER_DIM = 16;
+  const TOTAL_VOXELS = 4096;
+  const voxelBoxGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+  const voxelMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.82 });
+  const voxelInstanced = new THREE.InstancedMesh(voxelBoxGeo, voxelMat, TOTAL_VOXELS);
+  voxelInstanced.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  worldGroup.add(voxelInstanced);
+
+  const dummy = new THREE.Object3D();
+  const tempColor = new THREE.Color();
+
+  function getVoxelColor(val, cmap) {
+    const norm = Math.min(Math.max((val - 35) / 220, 0), 1);
+    if (cmap === "radiology") {
+      // High-contrast CT grayscale (dark charcoal -> soft tissue -> bright bone)
+      const b = 0.12 + norm * 0.88;
+      tempColor.setRGB(b, b, b * 1.05);
+    } else {
+      // Heatmap: cool phosphor teal -> warm lesion amber -> intense hotspot gold
+      if (norm < 0.45) {
+        const t = norm / 0.45;
+        tempColor.setRGB(0.1 + t * 0.25, 0.45 + t * 0.2, 0.5 + t * 0.1);
+      } else {
+        const t = (norm - 0.45) / 0.55;
+        tempColor.setRGB(0.45 + t * 0.55, 0.4 + t * 0.1, 0.15 - t * 0.05);
+      }
+    }
+    return tempColor;
+  }
+
+  function updateVoxelCloud(caseItem, cmap, filterSlice = null) {
+    let instanceIdx = 0;
+    const spacing = 0.19;
+    const offset = (VOXELS_PER_DIM - 1) * spacing * 0.5;
+
+    for (let z = 0; z < VOXELS_PER_DIM; z++) {
+      for (let y = 0; y < VOXELS_PER_DIM; y++) {
+        for (let x = 0; x < VOXELS_PER_DIM; x++) {
+          const val = caseItem.axial_volume[z][y][x];
+          const px = x * spacing - offset;
+          const py = (VOXELS_PER_DIM - 1 - y) * spacing - offset;
+          const pz = z * spacing - offset;
+
+          dummy.position.set(px, py, pz);
+
+          // Transparent/hidden for empty background air (<42 intensity)
+          if (val < 42) {
+            dummy.scale.set(0.001, 0.001, 0.001);
+          } else {
+            const isHighlightedSlice = filterSlice === null || filterSlice === z;
+            const norm = (val - 42) / 213;
+            const baseScale = (0.05 + norm * 0.13) * (isHighlightedSlice ? 1.0 : 0.35);
+            dummy.scale.set(baseScale, baseScale, baseScale);
+          }
+
+          dummy.updateMatrix();
+          voxelInstanced.setMatrixAt(instanceIdx, dummy.matrix);
+
+          const c = getVoxelColor(val, cmap);
+          voxelInstanced.setColorAt(instanceIdx, c);
+          instanceIdx++;
+        }
+      }
+    }
+    voxelInstanced.instanceMatrix.needsUpdate = true;
+    if (voxelInstanced.instanceColor) voxelInstanced.instanceColor.needsUpdate = true;
+  }
+
+  // -------------------------------------------------------------
+  // C. Mode 2: Multi-Slice Slicer Stack with Active Cutting Plane
+  // -------------------------------------------------------------
+  const slicerGroup = new THREE.Group();
+  worldGroup.add(slicerGroup);
+  slicerGroup.visible = false;
+
+  const slicePlanes = [];
+  const spacing = 0.19;
+  const offset = (VOXELS_PER_DIM - 1) * spacing * 0.5;
+
+  function makeSliceTexture(slice2d, cmap) {
     const c = document.createElement("canvas");
-    c.width = 128; c.height = 128;
+    c.width = 64; c.height = 64;
     const ctx = c.getContext("2d");
-    ctx.fillStyle = "#0B0E11"; ctx.fillRect(0, 0, 128, 128);
-
-    // Upsample 16x16 to 128x128
     const off = document.createElement("canvas");
     off.width = 16; off.height = 16;
     const offCtx = off.getContext("2d");
     const imgData = offCtx.createImageData(16, 16);
+
     for (let r = 0; r < 16; r++) {
       for (let col = 0; col < 16; col++) {
         const val = slice2d[r][col];
         const idx = (r * 16 + col) * 4;
-        imgData.data[idx] = val;
-        imgData.data[idx + 1] = val;
-        imgData.data[idx + 2] = val;
-        imgData.data[idx + 3] = val > 40 ? 220 : 0; // Transparent low-intensity background
+        const colObj = getVoxelColor(val, cmap);
+        imgData.data[idx + 0] = Math.round(colObj.r * 255);
+        imgData.data[idx + 1] = Math.round(colObj.g * 255);
+        imgData.data[idx + 2] = Math.round(colObj.b * 255);
+        imgData.data[idx + 3] = val > 45 ? 230 : 25;
       }
     }
     offCtx.putImageData(imgData, 0, 0);
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(off, 0, 0, 128, 128);
+    ctx.imageSmoothingEnabled = false; // Keep medical pixel fidelity crisp
+    ctx.drawImage(off, 0, 0, 64, 64);
 
     const tex = new THREE.CanvasTexture(c);
-    tex.needsUpdate = true;
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
     return tex;
   }
 
-  function buildLayers(caseItem) {
-    // Clear old planes
-    while (planes.length > 0) {
-      const p = planes.pop();
-      group.remove(p);
+  function buildSlicerStack(caseItem, cmap) {
+    while (slicePlanes.length > 0) {
+      const p = slicePlanes.pop();
+      slicerGroup.remove(p);
       p.geometry.dispose();
       p.material.dispose();
     }
 
-    for (let i = 0; i < LAYERS; i++) {
+    for (let i = 0; i < VOXELS_PER_DIM; i++) {
       const slice2d = caseItem.axial_volume[i];
-      const tex = makeSliceTexture(slice2d);
+      const tex = makeSliceTexture(slice2d, cmap);
       const mat = new THREE.MeshBasicMaterial({
         map: tex,
         transparent: true,
-        opacity: 0.15,
+        opacity: i === activeSliceIdx ? 0.95 : 0.16,
         depthWrite: false,
         side: THREE.DoubleSide
       });
-      const geo = new THREE.PlaneGeometry(3.6, 3.6);
+      const geo = new THREE.PlaneGeometry(CUBE_SIZE, CUBE_SIZE);
       const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.z = (i - LAYERS / 2) * 0.08;
-      group.add(mesh);
-      planes.push(mesh);
+      mesh.position.z = i * spacing - offset;
+      slicerGroup.add(mesh);
+      slicePlanes.push(mesh);
     }
   }
 
-  buildLayers(activeCase);
+  // Active glowing cutting plane frame
+  const cutFrameGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(CUBE_SIZE * 1.02, CUBE_SIZE * 1.02));
+  const cutFrameMat = new THREE.LineBasicMaterial({ color: 0xC97A2E, linewidth: 2 });
+  const cutFrame = new THREE.LineSegments(cutFrameGeo, cutFrameMat);
+  cutFrame.position.z = activeSliceIdx * spacing - offset;
+  slicerGroup.add(cutFrame);
 
-  function setActiveSlice(idx) {
-    planes.forEach((p, i) => {
+  function updateActiveSlice(idx) {
+    activeSliceIdx = idx;
+    slicePlanes.forEach((p, i) => {
       const dist = Math.abs(i - idx);
-      p.material.opacity = dist === 0 ? 0.95 : dist === 1 ? 0.35 : 0.08;
+      p.material.opacity = dist === 0 ? 0.95 : dist === 1 ? 0.4 : 0.12;
+    });
+    cutFrame.position.z = idx * spacing - offset;
+
+    if (currentViewMode === "cloud") {
+      updateVoxelCloud(activeCase, currentColormap, null);
+    }
+  }
+
+  // -------------------------------------------------------------
+  // D. Mode 3: 3D-MAE 4³ (64 Volumetric Patch Tokens)
+  // -------------------------------------------------------------
+  const patchGroup = new THREE.Group();
+  worldGroup.add(patchGroup);
+  patchGroup.visible = false;
+
+  const PATCH_DIM = 4;
+  const PATCH_SIZE = CUBE_SIZE / 4 * 0.92;
+  const pBoxGeo = new THREE.BoxGeometry(PATCH_SIZE, PATCH_SIZE, PATCH_SIZE);
+  const pEdgesGeo = new THREE.EdgesGeometry(pBoxGeo);
+
+  // Build 64 patch cubes (75% = 48 masked amber wireframes, 16 visible teal solids)
+  const patchOrder = [...Array(64).keys()].sort((a, b) => ((a * 37 + 13) % 64) - ((b * 37 + 13) % 64));
+  const maskedIndices = new Set(patchOrder.slice(0, 48));
+
+  for (let pz = 0; pz < PATCH_DIM; pz++) {
+    for (let py = 0; py < PATCH_DIM; py++) {
+      for (let px = 0; px < PATCH_DIM; px++) {
+        const patchIdx = pz * 16 + py * 4 + px;
+        const isMasked = maskedIndices.has(patchIdx);
+
+        const xPos = (px - 1.5) * (CUBE_SIZE / 4);
+        const yPos = (1.5 - py) * (CUBE_SIZE / 4);
+        const zPos = (pz - 1.5) * (CUBE_SIZE / 4);
+
+        if (isMasked) {
+          // 3D-MAE Masked token (Amber wireframe)
+          const pMat = new THREE.LineBasicMaterial({ color: 0xC97A2E, transparent: true, opacity: 0.6 });
+          const mMesh = new THREE.LineSegments(pEdgesGeo, pMat);
+          mMesh.position.set(xPos, yPos, zPos);
+          patchGroup.add(mMesh);
+        } else {
+          // 3D-MAE Visible token (Solid Phosphor Teal)
+          const pMat = new THREE.MeshStandardMaterial({
+            color: 0x6F9C96,
+            roughness: 0.4,
+            metalness: 0.2,
+            transparent: true,
+            opacity: 0.85
+          });
+          const vMesh = new THREE.Mesh(pBoxGeo, pMat);
+          vMesh.position.set(xPos, yPos, zPos);
+          patchGroup.add(vMesh);
+        }
+      }
+    }
+  }
+
+  // Initialize data
+  updateVoxelCloud(activeCase, currentColormap);
+  buildSlicerStack(activeCase, currentColormap);
+
+  // -------------------------------------------------------------
+  // E. View Mode & Colormap Switching
+  // -------------------------------------------------------------
+  function setViewMode(mode) {
+    currentViewMode = mode;
+    voxelInstanced.visible = mode === "cloud";
+    slicerGroup.visible = mode === "slicer";
+    patchGroup.visible = mode === "patches";
+
+    document.querySelectorAll("[data-vmode]").forEach(btn => {
+      btn.classList.toggle("is-active", btn.dataset.vmode === mode);
     });
   }
-  setActiveSlice(8);
 
-  let targetRotY = 0.35, targetRotX = 0.08;
-  frame.addEventListener("mousemove", (e) => {
-    const r = frame.getBoundingClientRect();
-    targetRotY = ((e.clientX - r.left) / r.width - 0.5) * 0.9;
-    targetRotX = ((e.clientY - r.top) / r.height - 0.5) * -0.5;
+  function setColormap(cmap) {
+    currentColormap = cmap;
+    updateVoxelCloud(activeCase, currentColormap);
+    buildSlicerStack(activeCase, currentColormap);
+    cutFrameMat.color.setHex(cmap === "radiology" ? 0xC97A2E : 0x6F9C96);
+
+    document.querySelectorAll("[data-cmap]").forEach(btn => {
+      btn.classList.toggle("is-active", btn.dataset.cmap === cmap);
+    });
+  }
+
+  document.querySelectorAll("[data-vmode]").forEach(btn => {
+    btn.addEventListener("click", () => setViewMode(btn.dataset.vmode));
   });
 
+  document.querySelectorAll("[data-cmap]").forEach(btn => {
+    btn.addEventListener("click", () => setColormap(btn.dataset.cmap));
+  });
+
+  const toggleRotBtn = document.getElementById("toggleRotate");
+  if (toggleRotBtn) {
+    toggleRotBtn.addEventListener("click", () => {
+      isAutoRotating = !isAutoRotating;
+      toggleRotBtn.textContent = isAutoRotating ? "⏸ Pause" : "⟳ Rotate";
+      toggleRotBtn.classList.toggle("is-active", !isAutoRotating);
+    });
+  }
+
+  // -------------------------------------------------------------
+  // F. Interactive Mouse Drag to Orbit in 3D
+  // -------------------------------------------------------------
+  let isDragging = false;
+  let prevMousePos = { x: 0, y: 0 };
+  let targetRotY = 0.5;
+  let targetRotX = 0.25;
+
+  frame.addEventListener("pointerdown", (e) => {
+    isDragging = true;
+    prevMousePos = { x: e.clientX, y: e.clientY };
+    frame.setPointerCapture(e.pointerId);
+  });
+
+  frame.addEventListener("pointermove", (e) => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - prevMousePos.x;
+    const deltaY = e.clientY - prevMousePos.y;
+    prevMousePos = { x: e.clientX, y: e.clientY };
+
+    targetRotY += deltaX * 0.008;
+    targetRotX += deltaY * 0.008;
+    targetRotX = Math.max(-1.1, Math.min(1.1, targetRotX)); // Constrain pitch
+  });
+
+  const stopDrag = (e) => {
+    if (isDragging) {
+      isDragging = false;
+      try { frame.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+  };
+  frame.addEventListener("pointerup", stopDrag);
+  frame.addEventListener("pointercancel", stopDrag);
+
+  // -------------------------------------------------------------
+  // G. Animation & Rendering Loop
+  // -------------------------------------------------------------
   function resize() {
-    const w = frame.clientWidth, h = frame.clientHeight;
+    const w = frame.clientWidth || 400;
+    const h = frame.clientHeight || 400;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
@@ -182,30 +430,40 @@ function renderSliceToCanvas(canvas, slice2d, highlightBox = null) {
   resize();
 
   function tick() {
-    group.rotation.y += (targetRotY - group.rotation.y) * 0.04;
-    group.rotation.x += (targetRotX - group.rotation.x) * 0.04;
+    if (isAutoRotating && !isDragging) {
+      targetRotY += 0.004;
+    }
+    worldGroup.rotation.y += (targetRotY - worldGroup.rotation.y) * 0.08;
+    worldGroup.rotation.x += (targetRotX - worldGroup.rotation.x) * 0.08;
+
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
   tick();
 
+  // -------------------------------------------------------------
+  // H. Slice Slider & Case Synchronization
+  // -------------------------------------------------------------
   const slider = document.getElementById("sliceSlider");
   const readout = document.getElementById("sliceReadout");
-  slider.addEventListener("input", () => {
-    const val = +slider.value;
-    setActiveSlice(val);
-    readout.textContent = `SLICE ${String(val).padStart(2, "0")} / 15`;
-  });
+  if (slider && readout) {
+    slider.addEventListener("input", () => {
+      const val = parseInt(slider.value, 10);
+      updateActiveSlice(val);
+      readout.textContent = `Z-SLICE ${String(val).padStart(2, "0")} / 15`;
+    });
+  }
 
-  // Light sweep animation
-  gsap.fromTo("#viewerSweep", { left: "-40%" }, { left: "115%", duration: 1.6, delay: 0.4, ease: "power2.inOut" });
-
-  // Expose function to update hero volume from case selector
+  // Expose function to update 3D hero volume whenever case changes
   window.updateHeroVolume = (caseIdx) => {
     activeCase = PS007_CASES[caseIdx];
-    document.getElementById("heroCaseTitle").textContent = `${activeCase.case_id} · ${activeCase.pathology.toUpperCase()}`;
-    buildLayers(activeCase);
-    setActiveSlice(+slider.value);
+    const titleEl = document.getElementById("heroCaseTitle");
+    if (titleEl) {
+      titleEl.textContent = `${activeCase.case_id} · ${activeCase.pathology.toUpperCase()}`;
+    }
+    updateVoxelCloud(activeCase, currentColormap);
+    buildSlicerStack(activeCase, currentColormap);
+    updateActiveSlice(slider ? parseInt(slider.value, 10) : 8);
   };
 })();
 

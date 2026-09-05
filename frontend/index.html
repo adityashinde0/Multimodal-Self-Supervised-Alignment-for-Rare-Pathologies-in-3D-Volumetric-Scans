@@ -130,16 +130,45 @@
   </div>
 
   <div class="hero__viewer">
-    <div class="viewer-frame">
+    <div class="viewer-frame" id="heroViewerFrame">
+      <div class="viewer-frame__corner viewer-frame__corner--tl"></div>
+      <div class="viewer-frame__corner viewer-frame__corner--tr"></div>
+      <div class="viewer-frame__corner viewer-frame__corner--bl"></div>
+      <div class="viewer-frame__corner viewer-frame__corner--br"></div>
+
       <div class="viewer-frame__label">
         <span id="heroCaseTitle">CASE_000 · LYMPHANGIOLEIOMYOMATOSIS</span>
-        <span id="sliceReadout">SLICE 08 / 16</span>
+        <span id="sliceReadout">Z-SLICE 08 / 15</span>
       </div>
+
       <canvas id="heroCanvas"></canvas>
       <div class="viewer-frame__sweep" id="viewerSweep"></div>
+
+      <div class="viewer-hud">
+        <span class="viewer-hud__tag">16³ VOXELS · 4,096 DENSITY POINTS</span>
+        <span class="viewer-hud__hint">DRAG TO ORBIT 360°</span>
+      </div>
     </div>
-    <input type="range" id="sliceSlider" class="slice-slider" min="0" max="15" value="8">
-    <p class="viewer-frame__note">Rendered from true 16×16×16 float32 volumetric scan array</p>
+
+    <!-- Interactive 3D Mode & Colormap Controls -->
+    <div class="viewer-toolbar">
+      <div class="viewer-toolbar__group">
+        <button class="vtool-btn is-active" data-vmode="cloud" title="3D Volumetric Density Point Cloud">⬚ 3D Voxel Cloud</button>
+        <button class="vtool-btn" data-vmode="slicer" title="Multi-Slice Stack with Interactive Cutting Plane">≡ 3D Slicer</button>
+        <button class="vtool-btn" data-vmode="patches" title="64 Volumetric Patch Tokens (4³)">◫ 4³ Patches</button>
+      </div>
+      <div class="viewer-toolbar__group">
+        <button class="vtool-btn is-active" data-cmap="radiology" title="High-contrast CT Bone/Parenchyma">CT Gray</button>
+        <button class="vtool-btn" data-cmap="heatmap" title="Pathology Lesion Heatmap: Teal to Amber">Heatmap</button>
+        <button class="vtool-btn" id="toggleRotate" title="Toggle Auto-Rotation">⏸ Pause</button>
+      </div>
+    </div>
+
+    <div class="slider-row">
+      <label class="slider-label" for="sliceSlider">CUTTING PLANE Z:</label>
+      <input type="range" id="sliceSlider" class="slice-slider" min="0" max="15" value="8">
+    </div>
+    <p class="viewer-frame__note">Rendered from true 16×16×16 float32 volumetric scan array · Interactive 3D Orbit</p>
   </div>
 </section>
 
