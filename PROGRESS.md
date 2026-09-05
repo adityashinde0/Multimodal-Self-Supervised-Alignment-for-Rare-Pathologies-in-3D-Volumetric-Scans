@@ -45,6 +45,7 @@
 | Prepare benchmark evidence | Programmer 3 | Evaluation complete | P0 | done | Saved to artifacts/metrics/benchmark_results.json |
 | Prepare final demo | Programmer 2 + 3 | End-to-end validation | P1 | done | demo.py showcases ranked results and clinical reports |
 | Final architecture audit | Programmer 1 | Complete MVP | P0 | done | Verified against PRD.md and ARCHITECTURE.md invariants |
+| Build radiology light-box web application | Full-stack | Retrieval API | P1 | done | Three.js 3D viewer, multi-planar slices, live PyTorch query API (server.py) |
 
 ---
 

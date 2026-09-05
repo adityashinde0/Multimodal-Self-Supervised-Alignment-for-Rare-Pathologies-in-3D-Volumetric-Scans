@@ -65,3 +65,5 @@ ehthumbs.db
 artifacts/checkpoints/*.pt
 *.pt
 
+# Reference prototypes
+ps007-frontend/

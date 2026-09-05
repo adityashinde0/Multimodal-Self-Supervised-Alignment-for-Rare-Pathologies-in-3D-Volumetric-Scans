@@ -117,7 +117,13 @@ PS-007-GT/
 ├── artifacts/
 │   ├── checkpoints/         # Trained PyTorch weights (.pt)
 │   └── metrics/             # Automated benchmark results (JSON)
+├── frontend/                # Interactive light-box web application
+│   ├── css/styles.css       # Radiology reading room aesthetic design tokens
+│   ├── js/data.js           # Real 3D volume slices & pre-indexed embeddings
+│   ├── js/main.js           # Three.js 3D volume viewer & retrieval UI
+│   └── index.html           # Light-box single page application
 ├── scripts/
+│   ├── export_frontend_data.py # Real 3D scan & embedding exporter
 │   └── inspect_dataset.py   # Dataset validation & statistics checker
 ├── src/
 │   ├── data/
@@ -138,6 +144,7 @@ PS-007-GT/
 │   └── test_pipeline.py     # Comprehensive 8-component unit test suite
 ├── volumes/                 # Raw 3D .bin volume arrays (16x16x16 float32)
 ├── demo.py                  # Interactive CLI zero-shot pathology demonstrator
+├── server.py                # Web application server + live PyTorch query API
 ├── run_experiments.py       # Full benchmark & ablation runner
 ├── radiology_reports.json   # Paired clinical radiology reports
 ├── DATASET_INFO.md          # Dataset schema and specifications
@@ -180,9 +187,30 @@ python run_experiments.py
 
 Results are printed to the console and automatically logged to `artifacts/metrics/benchmark_results.json` and `PROGRESS.md`.
 
+### 4. Run the Interactive Web Application
+
+Launch the full-stack radiology light-box web application:
+
+```bash
+python server.py
+```
+
+Then open your browser at:
+```text
+http://localhost:8000
+```
+
+- **Features**:
+  - **Three.js Volumetric Slicer**: Interactive layered 3D scan visualization with mouse parallax and slice stepper.
+  - **Multi-Planar Viewer**: Axial, Coronal, and Sagittal cross-sectional views with pathology ROI indicators.
+  - **3D-MAE Token Masker**: Visual demonstration of 75% volumetric patch masking and masked autoencoding.
+  - **Multimodal Contrastive Alignment**: Animated 128-D shared unit hypersphere projection connecting text and vision.
+  - **Live Zero-Shot Query Engine**: Real-time diagnostic retrieval powered by PyTorch inference with sub-100ms latency.
+  - **Dual Mode**: Seamlessly switches between live PyTorch backend API and client-side standalone execution.
+
 ---
 
-## 🖥️ Interactive Zero-Shot Demo
+## 🖥️ Interactive Zero-Shot Demo (CLI)
 
 Test natural language diagnostic queries directly against stored 3D scans:
 
