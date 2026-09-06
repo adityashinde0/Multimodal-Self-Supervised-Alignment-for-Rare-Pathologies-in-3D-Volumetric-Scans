@@ -17,7 +17,7 @@
   <strong>A self-supervised 3D vision-language framework that learns anatomical spatial continuity from raw 3D CT/MRI scans and paired unstructured radiology reports, unlocking zero-shot diagnostic retrieval for rare pathologies without requiring manual voxel annotations.</strong>
 </p>
 
-[Key Capabilities](#-key-capabilities) • [System Architecture](#-system-architecture) • [Benchmark Evidence](#-benchmark-evidence) • [Interactive Web App](#-interactive-radiology-light-box-web-application) • [Quick Start](#-quick-start) • [Diagnostic Audit](#-system-diagnostic-audit)
+[Key Capabilities](#-key-capabilities) • [System Architecture](#-system-architecture) • [Benchmark Evidence](#-benchmark-evidence) • [Interactive Web App](#-interactive-radiology-light-box-web-application) • [Quick Start](#-quick-start) • [Jury Defense FAQ](file:///c:/Users/Shind/OneDrive/Desktop/PS-007-GT/DEFENSE_FAQ.md)
 
 </div>
 
@@ -271,7 +271,15 @@ Requires Python 3.10+ with PyTorch and HuggingFace Transformers:
 pip install torch transformers numpy scikit-learn scipy
 ```
 
-### 2. Run Automated Unit Tests
+### 2. ⚡ 1-Click System Audit & Jury Verification (<10s)
+
+Executes environment detection, all 15 unit tests, checkpoint verification, and authoritative benchmark audit in a single command:
+
+```bash
+python verify_all.py
+```
+
+### 3. Run Automated Unit Tests Individually
 
 Verifies volume loading, 3D patch tokenization, exact 75% masking, MAE reconstruction, and InfoNCE loss:
 
@@ -298,7 +306,7 @@ test_15_voxel_count_and_nan_inf_sanitization ... ok
 Ran 15 tests in 0.456s - OK
 ```
 
-### 3. Run Experimental Benchmark Protocol
+### 4. Run Experimental Benchmark Protocol
 
 Executes supervised baseline training, 3D-MAE pretraining, multimodal contrastive alignment, and empirical mAP computation:
 
@@ -306,7 +314,7 @@ Executes supervised baseline training, 3D-MAE pretraining, multimodal contrastiv
 python run_experiments.py
 ```
 
-### 4. Run System Diagnostic Audit
+### 5. Run System Diagnostic Audit
 
 Performs a live 8-point health check across 3D dataset integrity, 75% masking math, model weights, live HTTP API, and benchmark invariants:
 
@@ -314,7 +322,7 @@ Performs a live 8-point health check across 3D dataset integrity, 75% masking ma
 python scripts/run_survey.py
 ```
 
-### 5. Interactive Zero-Shot CLI Demonstration
+### 6. Interactive Zero-Shot CLI Demonstration
 
 Query the 3D scan database directly from your command line:
 
