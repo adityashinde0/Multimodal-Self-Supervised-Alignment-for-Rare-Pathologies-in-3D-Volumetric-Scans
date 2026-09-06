@@ -7,9 +7,9 @@ class ZeroShotRetrievalEngine:
     Zero-Shot Pathology Retrieval Engine.
     Aligns free-text clinical queries with stored 3D volumetric scans.
     """
-    def __init__(self, model, device="cpu"):
-        self.model = model
-        self.device = device
+    def __init__(self, model, device=None):
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = model.to(self.device)
         self.gallery = []
         self.gallery_embeddings = None
 

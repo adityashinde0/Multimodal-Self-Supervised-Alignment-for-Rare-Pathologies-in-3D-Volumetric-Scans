@@ -28278,47 +28278,71 @@ export const PS007_CASES = [
 ];
 
 export const PS007_METRICS = {
-  "timestamp": "2026-09-05 22:47:41",
-  "hardware": {
-    "device": "cpu",
-    "cuda_available": false,
-    "target_vram_limit_gb": 24.0
+  "timestamp": "2026-09-06 11:44:31",
+  "reproducibility": {
+    "git_commit": "57cea9cf2c4670367b6ef3024f9755b6383f29f5",
+    "seed": 42,
+    "python_version": "3.11.9",
+    "torch_version": "2.6.0+cu124",
+    "device": "cuda",
+    "cuda_available": true,
+    "gpu_name": "NVIDIA GeForce RTX 3050 4GB Laptop GPU",
+    "target_vram_limit_gb": 24.0,
+    "masking_ratio": 0.75,
+    "masking_specification": "4x4x4 patches (64 tokens total), 48 masked (75%), 16 visible (25%)",
+    "text_encoder": "HuggingFace: sentence-transformers/all-MiniLM-L6-v2 (general-domain semantic sentence transformer)"
   },
-  "dataset": {
+  "dataset_protocol": {
     "total_cases": 5,
-    "volume_shape": [
-      1,
-      16,
-      16,
-      16
-    ],
+    "evaluation_protocol": "Proof-of-Concept 5-Case Search Gallery & Diagnostic Query Protocol + 5-Fold Leave-One-Case-Out Cross-Validation",
+    "clinical_generalization_claim": false,
+    "dataset_nature": "Feasibility prototype for rare pathology alignment under extreme low-data regime (1 scan per pathology). Clinical deployment requires multi-center cohort validation.",
+    "volume_shape": [1, 16, 16, 16],
     "num_queries_evaluated": 10
   },
   "baseline_supervised": {
-    "mAP": 0.3233,
+    "model_type": "Supervised 3D CNN (ResNet3D Backbone)",
+    "mAP": 0.3833,
     "Recall@1": 0.0,
-    "Recall@3": 0.6,
+    "Recall@3": 0.8,
     "Recall@5": 1.0,
-    "peak_vram_mb": 1.1277,
-    "latency_ms": 1.685,
+    "memory_type": "gpu_vram",
+    "peak_vram_mb": 19.5278,
+    "peak_ram_mb": null,
+    "latency_ms": 1.27,
     "parameters": 295173
   },
+  "ablation_3d_mae_reconstruction": {
+    "model_type": "3D-MAE (Reconstruction-Only, Unaligned)",
+    "mask_ratio": 0.75,
+    "recon_loss_mse": 0.996,
+    "unaligned_mAP": 0.395,
+    "memory_type": "gpu_vram",
+    "peak_vram_mb": 26.7363,
+    "peak_ram_mb": null,
+    "latency_ms": 3.746,
+    "parameters": 926528
+  },
   "proposed_multimodal_mae": {
-    "mAP": 0.8833,
-    "Recall@1": 0.8,
+    "model_type": "3D-MAE (75% Mask) + Symmetric InfoNCE Contrastive Aligner",
+    "mAP": 1.0,
+    "Recall@1": 1.0,
     "Recall@3": 1.0,
     "Recall@5": 1.0,
-    "peak_vram_mb": 90.8762,
-    "peak_vram_gb": 0.088746,
-    "latency_ms": 2.492,
-    "throughput_vol_per_sec": 401.32,
+    "loco_cv_recall1": 0.4,
+    "memory_type": "gpu_vram",
+    "peak_vram_mb": 122.5386,
+    "peak_ram_mb": null,
+    "peak_ram_gb": null,
+    "latency_ms": 4.005,
+    "throughput_vol_per_sec": 249.69,
     "parameters": 23820609
   },
   "comparison": {
-    "baseline_mAP": 0.3233,
-    "proposed_mAP": 0.8833,
-    "absolute_diff": 0.56,
-    "relative_improvement_pct": 173.2,
+    "baseline_mAP": 0.3833,
+    "proposed_mAP": 1.0,
+    "absolute_diff": 0.6167,
+    "relative_improvement_pct": 160.87,
     "target_15_pct_achieved": true,
     "vram_target_24gb_met": true
   }

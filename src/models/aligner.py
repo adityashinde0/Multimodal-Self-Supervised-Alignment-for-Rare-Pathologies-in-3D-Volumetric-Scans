@@ -57,6 +57,10 @@ class Multimodal3DAligner(nn.Module):
         # 3. Learnable logit scale / temperature parameter
         self.logit_scale = nn.Parameter(torch.ones([]) * math.log(1.0 / initial_temp))
 
+    @property
+    def active_encoder_name(self):
+        return self.text_encoder.active_encoder_name
+
     def get_image_embedding(self, volumes):
         """
         Extract normalized 3D visual embedding for retrieval.

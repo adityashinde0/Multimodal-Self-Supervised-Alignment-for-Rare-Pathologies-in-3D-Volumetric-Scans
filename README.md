@@ -9,9 +9,9 @@
 
 [![Architecture](https://img.shields.io/badge/Architecture-3D--MAE%20%2B%20InfoNCE-8A2BE2?style=flat-square)](#-system-architecture)
 [![Annotation Requirement](https://img.shields.io/badge/Voxel%20Labels-Zero%20Required-success?style=flat-square)](#-key-capabilities)
-[![mAP Improvement](https://img.shields.io/badge/mAP%20Gain-%2B173.2%25%20(Target%20%E2%89%A515%25)-brightgreen?style=flat-square)](#-benchmark-evidence)
-[![Inference Memory](https://img.shields.io/badge/Peak%20Memory-90.88%20MB%20(%E2%89%A424%20GB)-blue?style=flat-square)](#-benchmark-evidence)
-[![Inference Latency](https://img.shields.io/badge/Latency-2.29%20ms%20(437%20vol%2Fsec)-orange?style=flat-square)](#-benchmark-evidence)
+[![mAP Improvement](https://img.shields.io/badge/mAP%20Gain-%2B160.9%25%20(Target%20%E2%89%A515%25)-brightgreen?style=flat-square)](#-benchmark-evidence)
+[![Inference Memory](https://img.shields.io/badge/Peak%20VRAM-122.54%20MB%20(%E2%89%A424%20GB)-blue?style=flat-square)](#-benchmark-evidence)
+[![Inference Latency](https://img.shields.io/badge/Latency-4.01%20ms%20(250%20vol%2Fsec)-orange?style=flat-square)](#-benchmark-evidence)
 
 <p align="center">
   <strong>A self-supervised 3D vision-language framework that learns anatomical spatial continuity from raw 3D CT/MRI scans and paired unstructured radiology reports, unlocking zero-shot diagnostic retrieval for rare pathologies without requiring manual voxel annotations.</strong>
@@ -33,7 +33,7 @@ Rare pulmonary, neurodegenerative, and oncologic pathologies represent a critica
 * **75% Volumetric Masked Autoencoding (3D-MAE)**: Converts $16 \times 16 \times 16$ volumes into 64 cubic tokens ($4^3$), masking 75% (48 masked / 16 visible) to force deep anatomical context reconstruction.
 * **Symmetric InfoNCE Contrastive Alignment**: Unifies 3D image features and clinical text representations onto a shared 128-dimensional unit hypersphere.
 * **Zero-Shot Natural Language Clinical Retrieval**: Radiologists search stored 3D scans using unconstrained diagnostic language, receiving ranked candidate volumes with sub-3ms latency.
-* **Radically Efficient Footprint**: Consumes only **90.88 MB peak memory** ($\ll 24\text{ GB}$ hardware ceiling), enabling deployment on edge workstations or laptop environments.
+* **Radically Efficient Footprint**: Consumes only **122.54 MB peak GPU VRAM** (or 90.88 MB on CPU RAM, $\ll 24\text{ GB}$ hardware ceiling), enabling deployment on edge workstations, laptop GPUs, or CPU-only clinical lightboxes.
 
 ---
 
@@ -134,20 +134,24 @@ $$\mathcal{L}_{\text{total}} = \frac{1}{2} \left( \mathcal{L}_{v \to t} + \mathc
 ---
 
 ## 📊 Benchmark Evidence
+ 
+Evaluated across 10 diagnostic clinical queries on the PS-007 search gallery measured on **NVIDIA GeForce RTX 3050 GPU (CUDA:0)** alongside 5-Fold Leave-One-Case-Out cross-validation. All metrics were automatically measured and persisted in [`artifacts/metrics/benchmark_results.json`](file:///c:/Users/Shind/OneDrive/Desktop/PS-007-GT/artifacts/metrics/benchmark_results.json).
 
-Evaluated across 10 diagnostic clinical queries on held-out 3D volumetric test cases. All metrics were automatically measured and persisted in [`artifacts/metrics/benchmark_results.json`](file:///c:/Users/Shind/OneDrive/Desktop/PS-007-GT/artifacts/metrics/benchmark_results.json).
+| Evaluation Metric | Baseline 1: Supervised 3D CNN | Baseline 2: 3D-MAE (Recon-Only) | Proposed 3D-MAE Aligner | Target Requirement | Status |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Mean Average Precision (mAP)** | `0.3833` | `0.3950` | **`1.0000`** | $\ge \text{Baseline} \times 1.15$ | **PASS** |
+| **Relative mAP Improvement** | Reference | $+3.05\%$ | **`+160.87%`** | $\ge +15.0\%$ | **EXCEEDED (+160.9%)** |
+| **Recall@1** | `0.0000` | `0.1000` | **`1.0000`** | — | **100% Top-1 Accuracy** |
+| **Recall@3** | `0.8000` | `0.6000` | **`1.0000`** | — | **100% Top-3 Recall** |
+| **Recall@5** | `1.0000` | `1.0000` | **`1.0000`** | — | **Complete Coverage** |
+| **LOCO Zero-Shot Recall@1** | $0.0000$ | $0.1000$ | **`0.4000`** | PoC Feasibility | **40% Generalization on Novel Pathologies** |
+| **Peak GPU VRAM** | `19.53 MB` | `26.74 MB` | **`122.54 MB`** | $\le 24.0\text{ GB}$ | **PASS (0.12 GB $\ll 24$ GB)** |
+| **Inference Latency** | `1.27 ms` | `3.75 ms` | **`4.01 ms`** | Sub-10ms | **Ultra-Fast Real-Time Search** |
+| **Volumetric Throughput** | `787 vol/sec` | `267 vol/sec` | **`250 vol/sec`** | High-speed | **Live Multi-User Capable** |
+| **Model Parameters** | `295 K` | `927 K` | **`23.82 M`** | Compact | **GPU Workstation Accelerated** |
 
-| Metric | Supervised 3D Baseline | Proposed 3D-MAE Aligner | Target Requirement | Verification Status |
-|---|:---:|:---:|:---:|:---:|
-| **Mean Average Precision (mAP)** | `0.3233` | **`0.8833`** | $\ge \text{Baseline} \times 1.15$ | **PASS** |
-| **Relative mAP Improvement** | Baseline Ref | **`+173.2%`** | $\ge +15.0\%$ | **CRUSHED (+173.2%)** |
-| **Recall@1** | `0.0000` | **`0.8000`** | — | **Superior First-Hit Accuracy** |
-| **Recall@3** | `0.6000` | **`1.0000`** | — | **100% Top-3 Recall** |
-| **Recall@5** | `1.0000` | **`1.0000`** | — | **Complete Recall** |
-| **Peak Memory Allocation** | `1.13 MB` | **`90.88 MB`** | $\le 24.0\text{ GB}$ | **PASS (0.09 GB $\ll 24$ GB)** |
-| **Inference Latency** | `1.69 ms` | **`2.49 ms`** | Real-time | **Sub-3ms Diagnostic Latency** |
-| **Volumetric Throughput** | `593 vol/sec` | **`401 vol/sec`** | High-speed | **High-Throughput Streaming** |
-| **Model Parameters** | `295 K` | **`23.82 M`** | Compact | **Deployable on CPU/Edge** |
+> [!NOTE]
+> **Scientific Protocol & Dataset Scope**: This evaluation represents a Proof-of-Concept (PoC) Feasibility Prototype across 5 curated rare pathology cases (1 case per disease class). Evaluated on NVIDIA GeForce RTX 3050 Laptop GPU (CUDA:0). The LOCO cross-validation metric ($0.4000$ Recall@1 on completely held-out unseen pathologies) demonstrates zero-shot transfer capability under an extreme low-data regime. Full multi-center clinical validation is required before real-world diagnostic deployment.
 
 ---
 
@@ -268,8 +272,10 @@ test_05_multimodal_aligner_and_infonce ... ok
 test_06_supervised_baseline ... ok
 test_07_retrieval_and_metrics ... ok
 test_08_profiler ... ok
+test_09_patchify_unpatchify_roundtrip ... ok
+test_10_checkpoint_save_and_load ... ok
 
-Ran 8 tests in 0.164s - OK
+Ran 10 tests in 0.288s - OK
 ```
 
 ### 3. Run Experimental Benchmark Protocol
@@ -293,12 +299,12 @@ python scripts/run_survey.py
 ===========================================================================
   [DATASET        ] -> PASSED (5/5 cases valid, 16x16x16 float32, 16,384 bytes each)
   [PATCH_MASKING  ] -> PASSED (Exact 75% volumetric masking ratio: 48 masked, 16 visible)
-  [MAE_RECON      ] -> PASSED (MSE loss computed on masked voxels)
+  [MAE_RECON      ] -> PASSED (MSE loss computed on masked voxels: 2.1767)
   [CHECKPOINT     ] -> PASSED (23,820,609 params, 90.95 MB)
-  [RETRIEVAL      ] -> PASSED (Exact match Rank #1: CASE_001 IPF, score: +0.4725)
+  [RETRIEVAL      ] -> PASSED (Exact match Rank #1: CASE_001 IPF, score: +0.7222)
   [HTTP_API       ] -> PASSED (Live API responding, exact match Rank #1: CASE_001)
   [ASSETS         ] -> PASSED (All HTML, CSS, JS, and HD diagnostic scans verified)
-  [BENCHMARKS     ] -> PASSED (mAP Gain: +173.2%, Peak RAM: 90.88 MB)
+  [BENCHMARKS     ] -> PASSED (mAP Gain: +160.9%, RAM: 122.54 MB)
 ===========================================================================
 ```
 

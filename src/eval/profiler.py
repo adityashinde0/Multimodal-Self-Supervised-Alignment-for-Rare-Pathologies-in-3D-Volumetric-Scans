@@ -9,11 +9,20 @@ def count_parameters(model):
     return {"total": total, "trainable": trainable}
 
 
-def profile_inference_model(model, input_shape=(1, 1, 16, 16, 16), device="cpu", num_warmup=5, num_runs=20):
+def profile_inference_model(model, input_shape=(1, 1, 16, 16, 16), device=None, num_warmup=5, num_runs=20):
     """
-    Profiles inference VRAM (if CUDA is available) or host memory, latency, and throughput.
-    input_shape: (B, C, D, H, W)
+    Profiles inference memory (accurately distinguishing GPU VRAM from CPU Host RAM),
+    latency, and throughput.
+    
+    Scientific Honesty Rules:
+    - Never reports CPU memory as GPU VRAM.
+    - If CUDA is unavailable, explicitly reports CPU execution and peak_vram_mb as None.
+    - Validates execution against the <= 24GB target limit.
     """
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    cuda_available = torch.cuda.is_available() and device.startswith("cuda")
+    gpu_name = torch.cuda.get_device_name(device) if cuda_available else None
+    
     model = model.to(device)
     model.eval()
 
@@ -31,8 +40,8 @@ def profile_inference_model(model, input_shape=(1, 1, 16, 16, 16), device="cpu",
             else:
                 _ = model(dummy_vol)
 
-    # CUDA memory tracking
-    if device.startswith("cuda") and torch.cuda.is_available():
+    # CUDA memory tracking initialization
+    if cuda_available:
         torch.cuda.reset_peak_memory_stats(device)
         torch.cuda.synchronize()
 
@@ -48,23 +57,33 @@ def profile_inference_model(model, input_shape=(1, 1, 16, 16, 16), device="cpu",
             else:
                 _ = model(dummy_vol)
 
-            if device.startswith("cuda") and torch.cuda.is_available():
+            if cuda_available:
                 torch.cuda.synchronize()
             t1 = time.perf_counter()
             latencies.append((t1 - t0) * 1000.0)  # in ms
 
-    # Peak VRAM
-    if device.startswith("cuda") and torch.cuda.is_available():
+    # Model tensor static footprint (parameters + buffers)
+    param_bytes = sum(p.numel() * p.element_size() for p in model.parameters())
+    buffer_bytes = sum(b.numel() * b.element_size() for b in model.buffers())
+    model_tensor_mb = (param_bytes + buffer_bytes) / (1024 ** 2)
+
+    # Differentiate GPU VRAM vs CPU RAM
+    if cuda_available:
         peak_vram_bytes = torch.cuda.max_memory_allocated(device)
-        peak_vram_mb = peak_vram_bytes / (1024 ** 2)
-        peak_vram_gb = peak_vram_bytes / (1024 ** 3)
+        peak_vram_mb = round(peak_vram_bytes / (1024 ** 2), 4)
+        peak_vram_gb = round(peak_vram_bytes / (1024 ** 3), 6)
+        peak_ram_mb = None
+        peak_ram_gb = None
+        memory_type = "gpu_vram"
+        effective_memory_gb = peak_vram_gb
     else:
-        # For CPU execution, estimate model tensor allocation memory in MB
-        param_bytes = sum(p.numel() * p.element_size() for p in model.parameters())
-        buffer_bytes = sum(b.numel() * b.element_size() for b in model.buffers())
-        peak_vram_bytes = param_bytes + buffer_bytes
-        peak_vram_mb = peak_vram_bytes / (1024 ** 2)
-        peak_vram_gb = peak_vram_bytes / (1024 ** 3)
+        # On CPU, GPU VRAM does not exist. Report model RAM allocation.
+        peak_vram_mb = None
+        peak_vram_gb = None
+        peak_ram_mb = round(model_tensor_mb, 4)
+        peak_ram_gb = round(model_tensor_mb / 1024, 6)
+        memory_type = "cpu_ram"
+        effective_memory_gb = peak_ram_gb
 
     mean_latency = float(np.mean(latencies))
     std_latency = float(np.std(latencies))
@@ -75,11 +94,15 @@ def profile_inference_model(model, input_shape=(1, 1, 16, 16, 16), device="cpu",
 
     return {
         "device": device,
-        "input_shape": list(input_shape),
-        "batch_size": batch_size,
-        "peak_vram_mb": round(peak_vram_mb, 4),
-        "peak_vram_gb": round(peak_vram_gb, 6),
-        "under_24gb_limit": peak_vram_gb <= 24.0,
+        "cuda_available": cuda_available,
+        "gpu_name": gpu_name,
+        "memory_type": memory_type,
+        "model_tensor_memory_mb": round(model_tensor_mb, 4),
+        "peak_vram_mb": peak_vram_mb,
+        "peak_vram_gb": peak_vram_gb,
+        "peak_ram_mb": peak_ram_mb,
+        "peak_ram_gb": peak_ram_gb,
+        "under_24gb_limit": effective_memory_gb <= 24.0,
         "latency_ms_mean": round(mean_latency, 3),
         "latency_ms_std": round(std_latency, 3),
         "throughput_vol_per_sec": round(throughput, 2),

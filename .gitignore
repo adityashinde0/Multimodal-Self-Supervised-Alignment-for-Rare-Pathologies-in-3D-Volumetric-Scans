@@ -31,6 +31,8 @@ venv/
 .venv/
 env/
 .env
+venv_cuda/
+.venv_cuda/
 
 # Unit test / coverage
 .coverage
