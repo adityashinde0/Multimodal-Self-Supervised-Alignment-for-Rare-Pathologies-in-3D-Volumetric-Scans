@@ -101,11 +101,12 @@ def survey():
 
     # 5. Live Retrieval Engine & Unit Hypersphere Audit
     print("\n[CHECK 5] Auditing Zero-Shot Retrieval Engine & Embedding Space...")
-    engine = ZeroShotRetrievalEngine(model, device="cpu")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    engine = ZeroShotRetrievalEngine(model, device=device)
     engine.index_gallery(ds)
-    sample_vol = ds[0]["volume"].unsqueeze(0)
+    sample_vol = ds[0]["volume"].unsqueeze(0).to(device)
     with torch.no_grad():
-        sample_emb = model.get_image_embedding(sample_vol).numpy()[0]
+        sample_emb = model.get_image_embedding(sample_vol).cpu().numpy()[0]
     norm = np.linalg.norm(sample_emb)
     assert abs(norm - 1.0) < 1e-4, f"Embedding not normalized: {norm}"
     print(f"  ✓ Indexed {len(engine.gallery)} scans into {engine.gallery_embeddings.shape[1]}-D space.")

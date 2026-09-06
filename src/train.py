@@ -19,13 +19,14 @@ def train_supervised_baseline(
     batch_size=8,
     train_indices=None,
     train_case_ids=None,
-    device="cpu",
+    device=None,
     seed=42
 ):
     """
     Trains the supervised 3D CNN baseline on pathology labels.
     Uses augmented volume dataset strictly from the designated training split.
     """
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     set_seed(seed)
     augmented_samples = get_augmented_dataset(
         data_dir=data_dir, 
@@ -68,13 +69,14 @@ def train_3d_mae_pretraining(
     mask_ratio=0.75,
     train_indices=None,
     train_case_ids=None,
-    device="cpu",
+    device=None,
     seed=42
 ):
     """
     Pretrains 3D-MAE independently on volumetric masked reconstruction objective (rho = 0.75).
     Strictly uses training split cases.
     """
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     set_seed(seed)
     augmented_samples = get_augmented_dataset(
         data_dir=data_dir,
@@ -125,7 +127,7 @@ def train_multimodal_aligner(
     pretrained_mae_path=None,
     train_indices=None,
     train_case_ids=None,
-    device="cpu",
+    device=None,
     seed=42
 ):
     """
@@ -133,6 +135,7 @@ def train_multimodal_aligner(
     using joint 3D-MAE reconstruction (mask_ratio=0.75) + symmetric InfoNCE contrastive alignment.
     Strictly isolates training data to training cases to prevent any evaluation leakage.
     """
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     set_seed(seed)
     base_ds = VolumeReportDataset(
         data_dir=data_dir, 

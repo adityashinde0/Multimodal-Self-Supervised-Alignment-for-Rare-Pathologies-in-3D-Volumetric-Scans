@@ -9,7 +9,7 @@ def count_parameters(model):
     return {"total": total, "trainable": trainable}
 
 
-def profile_inference_model(model, input_shape=(1, 1, 16, 16, 16), device="cpu", num_warmup=5, num_runs=20):
+def profile_inference_model(model, input_shape=(1, 1, 16, 16, 16), device=None, num_warmup=5, num_runs=20):
     """
     Profiles inference memory (accurately distinguishing GPU VRAM from CPU Host RAM),
     latency, and throughput.
@@ -19,6 +19,7 @@ def profile_inference_model(model, input_shape=(1, 1, 16, 16, 16), device="cpu",
     - If CUDA is unavailable, explicitly reports CPU execution and peak_vram_mb as None.
     - Validates execution against the <= 24GB target limit.
     """
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     cuda_available = torch.cuda.is_available() and device.startswith("cuda")
     gpu_name = torch.cuda.get_device_name(device) if cuda_available else None
     
