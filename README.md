@@ -33,7 +33,7 @@ Rare pulmonary, neurodegenerative, and oncologic pathologies represent a critica
 * **75% Volumetric Masked Autoencoding (3D-MAE)**: Converts $16 \times 16 \times 16$ volumes into 64 cubic tokens ($4^3$), masking 75% (48 masked / 16 visible) to force deep anatomical context reconstruction.
 * **Symmetric InfoNCE Contrastive Alignment**: Unifies 3D image features and clinical text representations onto a shared 128-dimensional unit hypersphere.
 * **Zero-Shot Natural Language Clinical Retrieval**: Radiologists search stored 3D scans using unconstrained diagnostic language, receiving ranked candidate volumes with sub-3ms latency.
-* **Radically Efficient Footprint**: Consumes only **90.88 MB peak memory** ($\ll 24\text{ GB}$ hardware ceiling), enabling deployment on edge workstations or laptop environments.
+* **Radically Efficient Footprint**: Consumes only **122.54 MB peak GPU VRAM** (or 90.88 MB on CPU RAM, $\ll 24\text{ GB}$ hardware ceiling), enabling deployment on edge workstations, laptop GPUs, or CPU-only clinical lightboxes.
 
 ---
 
@@ -272,8 +272,10 @@ test_05_multimodal_aligner_and_infonce ... ok
 test_06_supervised_baseline ... ok
 test_07_retrieval_and_metrics ... ok
 test_08_profiler ... ok
+test_09_patchify_unpatchify_roundtrip ... ok
+test_10_checkpoint_save_and_load ... ok
 
-Ran 8 tests in 0.164s - OK
+Ran 10 tests in 0.288s - OK
 ```
 
 ### 3. Run Experimental Benchmark Protocol
@@ -297,12 +299,12 @@ python scripts/run_survey.py
 ===========================================================================
   [DATASET        ] -> PASSED (5/5 cases valid, 16x16x16 float32, 16,384 bytes each)
   [PATCH_MASKING  ] -> PASSED (Exact 75% volumetric masking ratio: 48 masked, 16 visible)
-  [MAE_RECON      ] -> PASSED (MSE loss computed on masked voxels)
+  [MAE_RECON      ] -> PASSED (MSE loss computed on masked voxels: 2.1767)
   [CHECKPOINT     ] -> PASSED (23,820,609 params, 90.95 MB)
-  [RETRIEVAL      ] -> PASSED (Exact match Rank #1: CASE_001 IPF, score: +0.4725)
+  [RETRIEVAL      ] -> PASSED (Exact match Rank #1: CASE_001 IPF, score: +0.7222)
   [HTTP_API       ] -> PASSED (Live API responding, exact match Rank #1: CASE_001)
   [ASSETS         ] -> PASSED (All HTML, CSS, JS, and HD diagnostic scans verified)
-  [BENCHMARKS     ] -> PASSED (mAP Gain: +160.9%, Peak RAM: 90.88 MB)
+  [BENCHMARKS     ] -> PASSED (mAP Gain: +160.9%, RAM: 122.54 MB)
 ===========================================================================
 ```
 
