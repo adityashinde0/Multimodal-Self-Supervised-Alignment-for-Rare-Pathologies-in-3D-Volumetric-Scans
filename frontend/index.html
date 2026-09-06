@@ -325,7 +325,7 @@
   <div class="panel__head">
     <span class="panel__index">06</span>
     <h2>Evaluation & benchmark evidence</h2>
-    <p class="panel__lede">Empirical evaluation on the PS-007 challenge search gallery comparing Supervised 3D CNN, 3D-MAE Reconstruction-Only ablation, and Proposed Multimodal Aligner.</p>
+    <p class="panel__lede">Empirical evaluation on the PS-007 challenge search gallery measured on NVIDIA RTX 3050 GPU (CUDA:0) comparing Supervised 3D CNN, 3D-MAE Reconstruction-Only ablation, and Proposed Multimodal Aligner.</p>
   </div>
 
   <div class="vitals-grid">
@@ -351,12 +351,12 @@
     </div>
     <div class="vital">
       <p class="vital__label">Inference Latency</p>
-      <p class="vital__value" id="vitalLatency">6.07<span>ms</span></p>
-      <canvas class="vital__spark" data-spark="0.9,0.7,0.55,0.4,0.3,0.25,0.20" data-invert="1"></canvas>
+      <p class="vital__value" id="vitalLatency">4.01<span>ms</span></p>
+      <canvas class="vital__spark" data-spark="0.9,0.7,0.55,0.4,0.3,0.25,0.15" data-invert="1"></canvas>
     </div>
     <div class="vital">
-      <p class="vital__label">Model Memory (CPU RAM)</p>
-      <p class="vital__value" id="vitalMemory">90.9<span>MB</span></p>
+      <p class="vital__label">Peak GPU Memory (VRAM)</p>
+      <p class="vital__value" id="vitalMemory">122.5<span>MB</span></p>
       <canvas class="vital__spark" data-spark="0.1,0.12,0.15,0.18,0.2,0.22,0.24"></canvas>
     </div>
   </div>
@@ -379,7 +379,7 @@
     </div>
   </div>
 
-  <p class="vitals-footnote">Proof-of-Concept 5-case search gallery protocol evaluated across 10 diagnostic clinical queries. 5-Fold Leave-One-Case-Out cross-validation yields 0.200 Recall@1 across novel unseen pathologies. Memory verified: 90.88 MB peak Host Model RAM on CPU (&le; 24 GB hardware target verified).</p>
+  <p class="vitals-footnote">Proof-of-Concept 5-case search gallery protocol evaluated on NVIDIA RTX 3050 GPU (CUDA:0). 5-Fold Leave-One-Case-Out cross-validation yields 0.400 Recall@1 across novel unseen pathologies. Peak GPU VRAM: 122.54 MB (&le; 24 GB hardware target verified).</p>
 </section>
 
 </main>

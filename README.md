@@ -10,8 +10,8 @@
 [![Architecture](https://img.shields.io/badge/Architecture-3D--MAE%20%2B%20InfoNCE-8A2BE2?style=flat-square)](#-system-architecture)
 [![Annotation Requirement](https://img.shields.io/badge/Voxel%20Labels-Zero%20Required-success?style=flat-square)](#-key-capabilities)
 [![mAP Improvement](https://img.shields.io/badge/mAP%20Gain-%2B160.9%25%20(Target%20%E2%89%A515%25)-brightgreen?style=flat-square)](#-benchmark-evidence)
-[![Inference Memory](https://img.shields.io/badge/Peak%20Memory-90.88%20MB%20(%E2%89%A424%20GB)-blue?style=flat-square)](#-benchmark-evidence)
-[![Inference Latency](https://img.shields.io/badge/Latency-6.07%20ms%20(165%20vol%2Fsec)-orange?style=flat-square)](#-benchmark-evidence)
+[![Inference Memory](https://img.shields.io/badge/Peak%20VRAM-122.54%20MB%20(%E2%89%A424%20GB)-blue?style=flat-square)](#-benchmark-evidence)
+[![Inference Latency](https://img.shields.io/badge/Latency-4.01%20ms%20(250%20vol%2Fsec)-orange?style=flat-square)](#-benchmark-evidence)
 
 <p align="center">
   <strong>A self-supervised 3D vision-language framework that learns anatomical spatial continuity from raw 3D CT/MRI scans and paired unstructured radiology reports, unlocking zero-shot diagnostic retrieval for rare pathologies without requiring manual voxel annotations.</strong>
@@ -135,7 +135,7 @@ $$\mathcal{L}_{\text{total}} = \frac{1}{2} \left( \mathcal{L}_{v \to t} + \mathc
 
 ## 📊 Benchmark Evidence
  
-Evaluated across 10 diagnostic clinical queries on the PS-007 search gallery alongside 5-Fold Leave-One-Case-Out cross-validation. All metrics were automatically measured and persisted in [`artifacts/metrics/benchmark_results.json`](file:///c:/Users/Shind/OneDrive/Desktop/PS-007-GT/artifacts/metrics/benchmark_results.json).
+Evaluated across 10 diagnostic clinical queries on the PS-007 search gallery measured on **NVIDIA GeForce RTX 3050 GPU (CUDA:0)** alongside 5-Fold Leave-One-Case-Out cross-validation. All metrics were automatically measured and persisted in [`artifacts/metrics/benchmark_results.json`](file:///c:/Users/Shind/OneDrive/Desktop/PS-007-GT/artifacts/metrics/benchmark_results.json).
 
 | Evaluation Metric | Baseline 1: Supervised 3D CNN | Baseline 2: 3D-MAE (Recon-Only) | Proposed 3D-MAE Aligner | Target Requirement | Status |
 |---|:---:|:---:|:---:|:---:|:---:|
@@ -144,14 +144,14 @@ Evaluated across 10 diagnostic clinical queries on the PS-007 search gallery alo
 | **Recall@1** | `0.0000` | `0.1000` | **`1.0000`** | — | **100% Top-1 Accuracy** |
 | **Recall@3** | `0.8000` | `0.6000` | **`1.0000`** | — | **100% Top-3 Recall** |
 | **Recall@5** | `1.0000` | `1.0000` | **`1.0000`** | — | **Complete Coverage** |
-| **LOCO Zero-Shot Recall@1** | $0.0000$ | $0.1000$ | **`0.2000`** | PoC Feasibility | **Generalization Proof** |
-| **Memory Footprint** | `1.13 MB (RAM)` | `3.53 MB (RAM)` | **`90.88 MB (RAM)`** | $\le 24.0\text{ GB}$ | **PASS (0.09 GB $\ll 24$ GB)** |
-| **Inference Latency** | `1.90 ms` | `9.62 ms` | **`6.07 ms`** | Sub-10ms | **Ultra-Fast Diagnostic Search** |
-| **Volumetric Throughput** | `527 vol/sec` | `104 vol/sec` | **`165 vol/sec`** | High-speed | **Live Multi-User Capable** |
-| **Model Parameters** | `295 K` | `927 K` | **`23.82 M`** | Compact | **Deployable on CPU / Workstation** |
+| **LOCO Zero-Shot Recall@1** | $0.0000$ | $0.1000$ | **`0.4000`** | PoC Feasibility | **40% Generalization on Novel Pathologies** |
+| **Peak GPU VRAM** | `19.53 MB` | `26.74 MB` | **`122.54 MB`** | $\le 24.0\text{ GB}$ | **PASS (0.12 GB $\ll 24$ GB)** |
+| **Inference Latency** | `1.27 ms` | `3.75 ms` | **`4.01 ms`** | Sub-10ms | **Ultra-Fast Real-Time Search** |
+| **Volumetric Throughput** | `787 vol/sec` | `267 vol/sec` | **`250 vol/sec`** | High-speed | **Live Multi-User Capable** |
+| **Model Parameters** | `295 K` | `927 K` | **`23.82 M`** | Compact | **GPU Workstation Accelerated** |
 
 > [!NOTE]
-> **Scientific Protocol & Dataset Scope**: This evaluation represents a Proof-of-Concept (PoC) Feasibility Prototype across 5 curated rare pathology cases (1 case per disease class). The LOCO cross-validation metric ($0.2000$ Recall@1 on completely held-out unseen pathologies) rigorously demonstrates low-data regime constraints without fabricating inflated clinical claims. Full multi-center clinical validation is required before real-world diagnostic deployment.
+> **Scientific Protocol & Dataset Scope**: This evaluation represents a Proof-of-Concept (PoC) Feasibility Prototype across 5 curated rare pathology cases (1 case per disease class). Evaluated on NVIDIA GeForce RTX 3050 Laptop GPU (CUDA:0). The LOCO cross-validation metric ($0.4000$ Recall@1 on completely held-out unseen pathologies) demonstrates zero-shot transfer capability under an extreme low-data regime. Full multi-center clinical validation is required before real-world diagnostic deployment.
 
 ---
 
