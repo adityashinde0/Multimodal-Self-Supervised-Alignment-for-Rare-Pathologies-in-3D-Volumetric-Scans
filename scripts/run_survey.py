@@ -174,9 +174,11 @@ def survey():
     print(f"  ✓ Baseline mAP: {metrics['baseline_supervised']['mAP']:.4f}")
     print(f"  ✓ Proposed mAP: {metrics['proposed_multimodal_mae']['mAP']:.4f}")
     print(f"  ✓ Relative mAP Gain: +{metrics['comparison']['relative_improvement_pct']:.1f}% (Target: >= +15.0%)")
-    print(f"  ✓ Peak Memory: {metrics['proposed_multimodal_mae']['peak_vram_mb']:.2f} MB (Target: <= 24,000 MB)")
+    mem = metrics['proposed_multimodal_mae']['peak_vram_mb'] or metrics['proposed_multimodal_mae']['peak_ram_mb']
+    mem_type = metrics['proposed_multimodal_mae']['memory_type'].upper()
+    print(f"  ✓ Memory ({mem_type}): {mem:.2f} MB (Target: <= 24,000 MB)")
     print(f"  ✓ Latency: {metrics['proposed_multimodal_mae']['latency_ms']:.2f} ms")
-    results["benchmarks"] = f"PASSED (mAP Gain: +{metrics['comparison']['relative_improvement_pct']:.1f}%, Peak RAM: {metrics['proposed_multimodal_mae']['peak_vram_mb']:.2f} MB)"
+    results["benchmarks"] = f"PASSED (mAP Gain: +{metrics['comparison']['relative_improvement_pct']:.1f}%, RAM: {mem:.2f} MB)"
 
     print("\n" + "=" * 75)
     print("                    SURVEY SUMMARY: ALL 8/8 CHECKS PASSED")

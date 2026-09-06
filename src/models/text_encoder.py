@@ -67,8 +67,13 @@ class LightweightClinicalTextEncoder(nn.Module):
 class ClinicalReportEncoder(nn.Module):
     """
     Clinical Text Encoder with support for HuggingFace pretrained models
-    (e.g. sentence-transformers or Bio_ClinicalBERT) with automatic fallback
+    (e.g. sentence-transformers/all-MiniLM-L6-v2 or Bio_ClinicalBERT) with automatic fallback
     to LightweightClinicalTextEncoder for guaranteed offline reproducibility.
+    
+    Scientific Note:
+    - Default sentence-transformers/all-MiniLM-L6-v2 is a general-domain semantic sentence transformer,
+      chosen for efficient CPU embedding.
+    - Specialized clinical models (e.g. emilyalsentzer/Bio_ClinicalBERT) can be supplied via model_name.
     """
     def __init__(self, model_name=None, embed_dim=128, device=None):
         super().__init__()
@@ -84,7 +89,7 @@ class ClinicalReportEncoder(nn.Module):
                 print(f"Loading HuggingFace text encoder: {model_name}...")
                 self.tokenizer = AutoTokenizer.from_pretrained(model_name)
                 self.hf_model = AutoModel.from_pretrained(model_name)
-                # Freeze backbone weights to preserve pretrained clinical semantics
+                # Freeze backbone weights to preserve pretrained semantic representations
                 for p in self.hf_model.parameters():
                     p.requires_grad = False
                 self.hf_model.eval()
@@ -98,6 +103,12 @@ class ClinicalReportEncoder(nn.Module):
 
         if not self.is_hf:
             self.fallback_encoder = LightweightClinicalTextEncoder(embed_dim=embed_dim)
+
+    @property
+    def active_encoder_name(self):
+        if self.is_hf:
+            return f"HuggingFace: {self.model_name} (general-domain semantic sentence transformer)"
+        return "LightweightClinicalTextEncoder (deterministic offline fallback)"
 
     def forward(self, reports):
         """

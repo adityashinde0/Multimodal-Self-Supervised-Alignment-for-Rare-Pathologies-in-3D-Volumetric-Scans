@@ -7,27 +7,32 @@ from .data.dataset import VolumeReportDataset, get_augmented_dataset
 from .models.baseline import Supervised3DBaseline
 from .models.mae3d import MaskedAutoencoder3D
 from .models.aligner import Multimodal3DAligner
+from .utils import set_seed
 
 
 def train_supervised_baseline(
     data_dir=".", 
     report_file="radiology_reports.json",
     num_classes=5,
-    epochs=50,
+    epochs=60,
     lr=1e-3,
     batch_size=8,
+    train_indices=None,
+    train_case_ids=None,
     device="cpu",
     seed=42
 ):
     """
     Trains the supervised 3D CNN baseline on pathology labels.
-    Uses augmented volume dataset to prevent overfitting on 5 cases.
+    Uses augmented volume dataset strictly from the designated training split.
     """
-    torch.manual_seed(seed)
+    set_seed(seed)
     augmented_samples = get_augmented_dataset(
         data_dir=data_dir, 
         report_file=report_file, 
-        num_augmentations_per_sample=15
+        num_augmentations_per_sample=15,
+        indices=train_indices,
+        case_ids=train_case_ids
     )
 
     model = Supervised3DBaseline(in_chans=1, num_classes=num_classes, embed_dim=128).to(device)
@@ -36,10 +41,7 @@ def train_supervised_baseline(
 
     model.train()
     for epoch in range(epochs):
-        # Mini-batch shuffle
         perm = torch.randperm(len(augmented_samples))
-        total_loss = 0.0
-        
         for start_idx in range(0, len(augmented_samples), batch_size):
             batch_indices = perm[start_idx:start_idx + batch_size]
             batch = [augmented_samples[i] for i in batch_indices]
@@ -52,7 +54,6 @@ def train_supervised_baseline(
             loss = criterion(logits, labels)
             loss.backward()
             optimizer.step()
-            total_loss += loss.item()
 
     model.eval()
     return model
@@ -61,21 +62,26 @@ def train_supervised_baseline(
 def train_3d_mae_pretraining(
     data_dir=".",
     report_file="radiology_reports.json",
-    epochs=50,
+    epochs=60,
     lr=1e-3,
     batch_size=8,
     mask_ratio=0.75,
+    train_indices=None,
+    train_case_ids=None,
     device="cpu",
     seed=42
 ):
     """
-    Pretrains 3D-MAE independently on volumetric masked reconstruction objective.
+    Pretrains 3D-MAE independently on volumetric masked reconstruction objective (rho = 0.75).
+    Strictly uses training split cases.
     """
-    torch.manual_seed(seed)
+    set_seed(seed)
     augmented_samples = get_augmented_dataset(
         data_dir=data_dir,
         report_file=report_file,
-        num_augmentations_per_sample=15
+        num_augmentations_per_sample=15,
+        indices=train_indices,
+        case_ids=train_case_ids
     )
 
     model = MaskedAutoencoder3D(
@@ -111,24 +117,38 @@ def train_3d_mae_pretraining(
 def train_multimodal_aligner(
     data_dir=".",
     report_file="radiology_reports.json",
-    epochs=100,
+    epochs=120,
     lr=1e-3,
-    mask_ratio=0.5,
+    mask_ratio=0.75,
     recon_weight=0.2,
     text_model_name="sentence-transformers/all-MiniLM-L6-v2",
     pretrained_mae_path=None,
+    train_indices=None,
+    train_case_ids=None,
     device="cpu",
     seed=42
 ):
     """
     Trains the proposed Multimodal 3D Vision-Language Aligner
-    using joint 3D-MAE reconstruction + symmetric InfoNCE contrastive alignment.
-    Uses distinct-case batches to prevent negative pair collisions.
+    using joint 3D-MAE reconstruction (mask_ratio=0.75) + symmetric InfoNCE contrastive alignment.
+    Strictly isolates training data to training cases to prevent any evaluation leakage.
     """
-    torch.manual_seed(seed)
-    base_ds = VolumeReportDataset(data_dir=data_dir, report_file=report_file, augment=False)
-    aug_ds = VolumeReportDataset(data_dir=data_dir, report_file=report_file, augment=True)
-    num_classes = len(base_ds)
+    set_seed(seed)
+    base_ds = VolumeReportDataset(
+        data_dir=data_dir, 
+        report_file=report_file, 
+        augment=False,
+        indices=train_indices,
+        case_ids=train_case_ids
+    )
+    aug_ds = VolumeReportDataset(
+        data_dir=data_dir, 
+        report_file=report_file, 
+        augment=True,
+        indices=train_indices,
+        case_ids=train_case_ids
+    )
+    num_train_cases = len(base_ds)
 
     model = Multimodal3DAligner(
         img_size=(16, 16, 16),
@@ -154,10 +174,10 @@ def train_multimodal_aligner(
     model.train()
 
     for epoch in range(epochs):
-        # Build batch containing exactly one augmented instance of each distinct case
+        # Build batch containing distinct cases to prevent negative pair collisions
         batch_vols = []
         batch_reports = []
-        for c in range(num_classes):
+        for c in range(num_train_cases):
             sample = aug_ds[c]
             batch_vols.append(sample["volume"])
             batch_reports.append(sample["report"])
