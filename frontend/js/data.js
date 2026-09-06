@@ -28278,12 +28278,13 @@ export const PS007_CASES = [
 ];
 
 export const PS007_METRICS = {
-  "timestamp": "2026-09-06 11:44:31",
+  "timestamp": "2026-09-06 12:06:22",
   "reproducibility": {
-    "git_commit": "57cea9cf2c4670367b6ef3024f9755b6383f29f5",
+    "git_commit": "ee18830928570627773e8aa5569e3460603178df",
     "seed": 42,
     "python_version": "3.11.9",
     "torch_version": "2.6.0+cu124",
+    "cuda_version": "12.4",
     "device": "cuda",
     "cuda_available": true,
     "gpu_name": "NVIDIA GeForce RTX 3050 4GB Laptop GPU",
@@ -28301,7 +28302,7 @@ export const PS007_METRICS = {
     "num_queries_evaluated": 10
   },
   "baseline_supervised": {
-    "model_type": "Supervised 3D CNN (ResNet3D Backbone)",
+    "model_type": "Supervised 3D CNN + keyword-to-class query mapping",
     "mAP": 0.3833,
     "Recall@1": 0.0,
     "Recall@3": 0.8,
@@ -28309,18 +28310,22 @@ export const PS007_METRICS = {
     "memory_type": "gpu_vram",
     "peak_vram_mb": 19.5278,
     "peak_ram_mb": null,
-    "latency_ms": 1.27,
+    "latency_ms": 1.449,
     "parameters": 295173
   },
   "ablation_3d_mae_reconstruction": {
     "model_type": "3D-MAE (Reconstruction-Only, Unaligned)",
     "mask_ratio": 0.75,
     "recon_loss_mse": 0.996,
-    "unaligned_mAP": 0.395,
+    "retrieval_status": "Not applicable without cross-modal alignment",
+    "mAP": null,
+    "Recall@1": null,
+    "Recall@3": null,
+    "Recall@5": null,
     "memory_type": "gpu_vram",
     "peak_vram_mb": 26.7363,
     "peak_ram_mb": null,
-    "latency_ms": 3.746,
+    "latency_ms": 4.044,
     "parameters": 926528
   },
   "proposed_multimodal_mae": {
@@ -28329,13 +28334,15 @@ export const PS007_METRICS = {
     "Recall@1": 1.0,
     "Recall@3": 1.0,
     "Recall@5": 1.0,
-    "loco_cv_recall1": 0.4,
+    "loco_cv_recall1": 0.2,
+    "loco_cv_recall3": 0.6,
+    "loco_cv_recall5": 1.0,
     "memory_type": "gpu_vram",
     "peak_vram_mb": 122.5386,
     "peak_ram_mb": null,
     "peak_ram_gb": null,
-    "latency_ms": 4.005,
-    "throughput_vol_per_sec": 249.69,
+    "latency_ms": 3.641,
+    "throughput_vol_per_sec": 274.65,
     "parameters": 23820609
   },
   "comparison": {

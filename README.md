@@ -11,7 +11,7 @@
 [![Annotation Requirement](https://img.shields.io/badge/Voxel%20Labels-Zero%20Required-success?style=flat-square)](#-key-capabilities)
 [![mAP Improvement](https://img.shields.io/badge/mAP%20Gain-%2B160.9%25%20(Target%20%E2%89%A515%25)-brightgreen?style=flat-square)](#-benchmark-evidence)
 [![Inference Memory](https://img.shields.io/badge/Peak%20VRAM-122.54%20MB%20(%E2%89%A424%20GB)-blue?style=flat-square)](#-benchmark-evidence)
-[![Inference Latency](https://img.shields.io/badge/Latency-4.01%20ms%20(250%20vol%2Fsec)-orange?style=flat-square)](#-benchmark-evidence)
+[![Inference Latency](https://img.shields.io/badge/Latency-3.64%20ms%20(275%20vol%2Fsec)-orange?style=flat-square)](#-benchmark-evidence)
 
 <p align="center">
   <strong>A self-supervised 3D vision-language framework that learns anatomical spatial continuity from raw 3D CT/MRI scans and paired unstructured radiology reports, unlocking zero-shot diagnostic retrieval for rare pathologies without requiring manual voxel annotations.</strong>
@@ -135,23 +135,38 @@ $$\mathcal{L}_{\text{total}} = \frac{1}{2} \left( \mathcal{L}_{v \to t} + \mathc
 
 ## 📊 Benchmark Evidence
  
-Evaluated across 10 diagnostic clinical queries on the PS-007 search gallery measured on **NVIDIA GeForce RTX 3050 GPU (CUDA:0)** alongside 5-Fold Leave-One-Case-Out cross-validation. All metrics were automatically measured and persisted in [`artifacts/metrics/benchmark_results.json`](file:///c:/Users/Shind/OneDrive/Desktop/PS-007-GT/artifacts/metrics/benchmark_results.json).
+All empirical metrics were automatically measured on **NVIDIA GeForce RTX 3050 Laptop GPU (CUDA:0)** using PyTorch 2.6.0+cu124 and persisted in the authoritative artifact [`artifacts/metrics/benchmark_results.json`](file:///c:/Users/Shind/OneDrive/Desktop/PS-007-GT/artifacts/metrics/benchmark_results.json).
 
-| Evaluation Metric | Baseline 1: Supervised 3D CNN | Baseline 2: 3D-MAE (Recon-Only) | Proposed 3D-MAE Aligner | Target Requirement | Status |
+### 1. Challenge Search Gallery Performance (5 Curated Cases, 10 Diagnostic Queries)
+
+| Method | mAP | Recall@1 | Recall@3 | Recall@5 | Purpose / Architecture |
+|---|:---:|:---:|:---:|:---:|---|
+| **Supervised 3D CNN + Keywords** | `0.3833` | `0.0000` | `0.8000` | `1.0000` | Supervised 3D CNN baseline with clinical keyword-to-posterior mapping. |
+| **3D-MAE (Reconstruction-Only)** | *N/A* | *N/A* | *N/A* | *N/A* | Self-supervised 3D visual learning ($MSE = 0.9960$). Cross-modal retrieval is N/A without text alignment. |
+| **Proposed 3D-MAE + InfoNCE** | **`1.0000`** | **`1.0000`** | **`1.0000`** | **`1.0000`** | Multimodal 3D-MAE + InfoNCE contrastive aligner (**+160.87% relative mAP gain**). |
+
+> [!IMPORTANT]
+> **Scientific Transparency on mAP = 1.0000**:
+> The `1.0000` mAP and `1.0000` Recall@K scores represent **5-case proof-of-concept search-gallery performance**, demonstrating that multimodal contrastive embeddings can successfully resolve and index the 5 distinct rare pathology archetypes in a shared 128-D space. **This does NOT represent general clinical diagnostic accuracy, 100% real-world diagnostic performance, or multi-center patient cohort validation.**
+
+### 2. Generalization Evaluation: 5-Fold Leave-One-Case-Out (LOCO) Cross-Validation
+
+In each fold, one rare pathology case is held out completely from training (volume, report, and queries strictly withheld). The fold model is trained solely on the remaining 4 cases and evaluated across 10 held-out diagnostic query evaluations:
+
+| Evaluation Metric | Measured Result | Interpretation |
+|---|:---:|---|
+| **LOCO Mean Recall@1** | **`0.2000` (20.0%)** | Zero-shot top-1 candidate match on completely novel, unseen rare pathologies under extreme 4-case training. |
+| **LOCO Mean Recall@3** | **`0.6000` (60.0%)** | Held-out rare pathology localized in top-3 candidates in 60% of test queries. |
+| **LOCO Mean Recall@5** | **`1.0000` (100.0%)** | Complete gallery candidate coverage across all held-out queries. |
+
+### 3. Hardware & Runtime Efficiency (NVIDIA RTX 3050 Laptop GPU, CUDA:0)
+
+| Profiling Metric | Supervised 3D CNN | 3D-MAE (Recon-Only) | Proposed Multimodal Aligner | Hardware Ceiling | Compliance Status |
 |---|:---:|:---:|:---:|:---:|:---:|
-| **Mean Average Precision (mAP)** | `0.3833` | `0.3950` | **`1.0000`** | $\ge \text{Baseline} \times 1.15$ | **PASS** |
-| **Relative mAP Improvement** | Reference | $+3.05\%$ | **`+160.87%`** | $\ge +15.0\%$ | **EXCEEDED (+160.9%)** |
-| **Recall@1** | `0.0000` | `0.1000` | **`1.0000`** | — | **100% Top-1 Accuracy** |
-| **Recall@3** | `0.8000` | `0.6000` | **`1.0000`** | — | **100% Top-3 Recall** |
-| **Recall@5** | `1.0000` | `1.0000` | **`1.0000`** | — | **Complete Coverage** |
-| **LOCO Zero-Shot Recall@1** | $0.0000$ | $0.1000$ | **`0.4000`** | PoC Feasibility | **40% Generalization on Novel Pathologies** |
-| **Peak GPU VRAM** | `19.53 MB` | `26.74 MB` | **`122.54 MB`** | $\le 24.0\text{ GB}$ | **PASS (0.12 GB $\ll 24$ GB)** |
-| **Inference Latency** | `1.27 ms` | `3.75 ms` | **`4.01 ms`** | Sub-10ms | **Ultra-Fast Real-Time Search** |
-| **Volumetric Throughput** | `787 vol/sec` | `267 vol/sec` | **`250 vol/sec`** | High-speed | **Live Multi-User Capable** |
-| **Model Parameters** | `295 K` | `927 K` | **`23.82 M`** | Compact | **GPU Workstation Accelerated** |
-
-> [!NOTE]
-> **Scientific Protocol & Dataset Scope**: This evaluation represents a Proof-of-Concept (PoC) Feasibility Prototype across 5 curated rare pathology cases (1 case per disease class). Evaluated on NVIDIA GeForce RTX 3050 Laptop GPU (CUDA:0). The LOCO cross-validation metric ($0.4000$ Recall@1 on completely held-out unseen pathologies) demonstrates zero-shot transfer capability under an extreme low-data regime. Full multi-center clinical validation is required before real-world diagnostic deployment.
+| **Peak GPU VRAM** | `19.53 MB` | `26.74 MB` | **`122.54 MB` (0.12 GB)** | $\le 24.0\text{ GB}$ | **PASS (0.5% limit)** |
+| **Inference Latency** | `1.45 ms` | `4.04 ms` | **`3.64 ms`** | Sub-10ms | **Real-Time Interactive** |
+| **Throughput** | `690 vol/sec` | `247 vol/sec` | **`275 vol/sec`** | High-speed | **Multi-User Capable** |
+| **Parameter Count** | `295 K` | `927 K` | **`23.82 M`** | Compact | **Workstation Accelerated** |
 
 ---
 
@@ -264,18 +279,23 @@ Verifies volume loading, 3D patch tokenization, exact 75% masking, MAE reconstru
 python -m unittest tests/test_pipeline.py -v
 ```
 ```text
-test_01_dataset_loading ... ok
-test_02_patch_embed_and_masking ... ok
-test_03_mae3d_forward_and_loss ... ok
-test_04_text_encoder_and_projection ... ok
-test_05_multimodal_aligner_and_infonce ... ok
-test_06_supervised_baseline ... ok
-test_07_retrieval_and_metrics ... ok
-test_08_profiler ... ok
-test_09_patchify_unpatchify_roundtrip ... ok
-test_10_checkpoint_save_and_load ... ok
+test_01_dataset_loading_and_split_isolation ... ok
+test_02_3d_patch_embedding_and_positional_embedding ... ok
+test_03_patchify_unpatchify_roundtrip ... ok
+test_04_masking_ratio ... ok
+test_05_mae3d_reconstruction_output_and_loss ... ok
+test_06_text_encoder_and_projection_normalization ... ok
+test_07_multimodal_aligner_and_infonce_loss ... ok
+test_08_retrieval_ranking_and_metrics ... ok
+test_09_checkpoint_safety_and_loading ... ok
+test_10_profiler_memory_distinction ... ok
+test_11_deterministic_sha256_token_hashing ... ok
+test_12_loco_train_test_absolute_isolation ... ok
+test_13_retrieval_validation_empty_and_unknown_queries ... ok
+test_14_infonce_temperature_and_symmetry ... ok
+test_15_voxel_count_and_nan_inf_sanitization ... ok
 
-Ran 10 tests in 0.288s - OK
+Ran 15 tests in 0.456s - OK
 ```
 
 ### 3. Run Experimental Benchmark Protocol
@@ -293,20 +313,6 @@ Performs a live 8-point health check across 3D dataset integrity, 75% masking ma
 ```bash
 python scripts/run_survey.py
 ```
-```text
-===========================================================================
-                    SURVEY SUMMARY: ALL 8/8 CHECKS PASSED
-===========================================================================
-  [DATASET        ] -> PASSED (5/5 cases valid, 16x16x16 float32, 16,384 bytes each)
-  [PATCH_MASKING  ] -> PASSED (Exact 75% volumetric masking ratio: 48 masked, 16 visible)
-  [MAE_RECON      ] -> PASSED (MSE loss computed on masked voxels: 2.1767)
-  [CHECKPOINT     ] -> PASSED (23,820,609 params, 90.95 MB)
-  [RETRIEVAL      ] -> PASSED (Exact match Rank #1: CASE_001 IPF, score: +0.7222)
-  [HTTP_API       ] -> PASSED (Live API responding, exact match Rank #1: CASE_001)
-  [ASSETS         ] -> PASSED (All HTML, CSS, JS, and HD diagnostic scans verified)
-  [BENCHMARKS     ] -> PASSED (mAP Gain: +160.9%, RAM: 122.54 MB)
-===========================================================================
-```
 
 ### 5. Interactive Zero-Shot CLI Demonstration
 
@@ -321,14 +327,16 @@ Or provide any custom clinical diagnostic text query:
 ```bash
 python demo.py --query "Subpleural basilar reticular honeycombing with architectural distortion"
 ```
-```text
-----------------------------------------------------------------------
-QUERY: "Subpleural basilar reticular honeycombing with architectural distortion"
-----------------------------------------------------------------------
-  Rank #1 | Score: +0.4826 | Case: CASE_001 | Pathology: Idiopathic Pulmonary Fibrosis
-  Rank #2 | Score: +0.2850 | Case: CASE_002 | Pathology: Glioblastoma Multiforme
-  Rank #3 | Score: +0.0400 | Case: CASE_004 | Pathology: Creutzfeldt-Jakob Disease
-```
+
+---
+
+## 🌐 Optional External Multi-Center Dataset Protocol (Non-Dependency)
+
+While the official PS-007 benchmark strictly adheres to the supplied 5-case rare pathology dataset for zero-overhead national-level hackathon reproducibility, the architecture supports multi-center scaling via public benchmarks:
+
+- **MedMNIST3D (OrganMNIST3D / NoduleMNIST3D)**: Standardized $28\times 28\times 28$ volumetric scans convertible to PS-007 patch grids without code changes.
+- **Medical Segmentation Decathlon (MSD)**: Open-access multi-center CT/MRI collections (e.g., Task01 Brain Tumour, Task06 Lung).
+- **Protocol Note**: External datasets are strictly optional experimental extensions and are **NOT** required to run, test, benchmark, or verify this repository. The official benchmark remains the supplied 5-case dataset.
 
 ---
 

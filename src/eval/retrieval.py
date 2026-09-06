@@ -52,6 +52,9 @@ class ZeroShotRetrievalEngine:
         Performs zero-shot retrieval given a clinical text description.
         returns: list of dicts ranked by cosine similarity
         """
+        if not isinstance(text_query, str) or not text_query.strip():
+            raise ValueError("Clinical text query must be a non-empty string.")
+
         if self.gallery_embeddings is None or len(self.gallery) == 0:
             raise ValueError("Gallery is empty. Call index_gallery first.")
 

@@ -152,11 +152,11 @@ def run_all_experiments(
             recon_losses.append(out["loss"].item())
     mae_mean_recon_loss = float(np.mean(recon_losses))
 
-    # Without multimodal alignment, unaligned 3D-MAE features cannot ground text queries
-    # Measuring unaligned feature retrieval against random projection baseline:
-    mae_sims = np.random.RandomState(seed).uniform(0.1, 0.3, size=(len(pathology_queries), len(gallery_ds)))
-    mae_metrics = compute_retrieval_metrics(mae_sims, query_labels, gallery_labels, k_list=(1, 3, 5))
-    print(f"3D-MAE Ablation Results -> Recon Loss (MSE @ 75% mask): {mae_mean_recon_loss:.4f}, Unaligned mAP: {mae_metrics['mAP']:.4f}, Parameters: {mae_profile['total_parameters']}")
+    # Without multimodal alignment, unaligned 3D-MAE visual features occupy a distinct
+    # embedding space from text queries. Mathematically, text-to-visual cross-modal retrieval
+    # is not applicable without cross-modal projection.
+    # Scientific correctness: Report reconstruction MSE and mark retrieval as N/A (do not fabricate scores).
+    print(f"3D-MAE Ablation Results -> Recon Loss (MSE @ 75% mask): {mae_mean_recon_loss:.4f}, Text Retrieval: N/A (Unaligned), Parameters: {mae_profile['total_parameters']}")
 
     # ============================================================
     # 4. Experiment C: Proposed Model (3D-MAE + Text + Symmetric InfoNCE)
@@ -205,15 +205,18 @@ def run_all_experiments(
     print(f"  Relative mAP Gain over Baseline: {rel_percent:+.2f}% (Target: >= +15%)")
 
     # ============================================================
-    # 5. Leave-One-Case-Out (LOCO) Cross-Validation
+    # 5. Leave-One-Case-Out (LOCO) Cross-Validation (Generalization Test)
     # ============================================================
     print("\n--- Running Leave-One-Case-Out (LOCO) Zero-Shot Cross-Validation ---")
     loco_r1_successes = []
+    loco_r3_successes = []
+    loco_r5_successes = []
     for test_idx in range(len(gallery_ds)):
         train_idxs = [i for i in range(len(gallery_ds)) if i != test_idx]
         held_out_case = gallery_ds[test_idx]["case_id"]
+        held_out_pathology = gallery_ds[test_idx]["pathology"]
         
-        # Train fold aligner on remaining 4 cases only
+        # Train fold aligner on remaining 4 cases only (strict split separation)
         fold_model = train_multimodal_aligner(
             data_dir=data_dir,
             report_file=report_file,
@@ -228,20 +231,38 @@ def run_all_experiments(
         fold_engine = ZeroShotRetrievalEngine(fold_model, device=device)
         fold_engine.index_gallery(gallery_ds)
         
-        # Query with test case query
-        test_query = pathology_queries[test_idx * 2]["query"]
-        fold_results = fold_engine.query(test_query, top_k=1)
-        r1_correct = (fold_results[0]["case_id"] == held_out_case)
-        loco_r1_successes.append(1 if r1_correct else 0)
-        print(f"  Fold {test_idx + 1}/5: Held-out {held_out_case} -> Top-1 Match: {r1_correct}")
+        # Evaluate all queries associated with the held-out case
+        case_queries = [q for q in pathology_queries if q["label"] == test_idx]
+        fold_r1_hits = 0
+        for q_item in case_queries:
+            fold_results = fold_engine.query(q_item["query"], top_k=5)
+            ranked_case_ids = [r["case_id"] for r in fold_results]
+            
+            r1_hit = (ranked_case_ids[0] == held_out_case)
+            r3_hit = (held_out_case in ranked_case_ids[:3])
+            r5_hit = (held_out_case in ranked_case_ids[:5])
+            
+            loco_r1_successes.append(1 if r1_hit else 0)
+            loco_r3_successes.append(1 if r3_hit else 0)
+            loco_r5_successes.append(1 if r5_hit else 0)
+            if r1_hit:
+                fold_r1_hits += 1
+                
+        print(f"  Fold {test_idx + 1}/5: Held-out {held_out_case} ({held_out_pathology}) -> R@1 Hits: {fold_r1_hits}/{len(case_queries)}")
 
     loco_mean_recall1 = float(np.mean(loco_r1_successes))
-    print(f"LOCO Cross-Validation Mean Recall@1: {loco_mean_recall1:.4f}")
+    loco_mean_recall3 = float(np.mean(loco_r3_successes))
+    loco_mean_recall5 = float(np.mean(loco_r5_successes))
+    print(f"LOCO Cross-Validation Metrics across {len(loco_r1_successes)} held-out query evaluations:")
+    print(f"  Mean Recall@1: {loco_mean_recall1:.4f}")
+    print(f"  Mean Recall@3: {loco_mean_recall3:.4f}")
+    print(f"  Mean Recall@5: {loco_mean_recall5:.4f}")
 
     # ============================================================
     # 6. Compile Comprehensive Authoritative Benchmark Payload
     # ============================================================
     repro_meta = get_reproducibility_metadata(seed=seed)
+    cuda_ver = torch.version.cuda if torch.cuda.is_available() else None
     
     results_payload = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -250,6 +271,7 @@ def run_all_experiments(
             "seed": seed,
             "python_version": repro_meta["python_version"],
             "torch_version": repro_meta["torch_version"],
+            "cuda_version": cuda_ver,
             "device": device,
             "cuda_available": repro_meta["cuda_available"],
             "gpu_name": repro_meta["device_name"],
@@ -267,7 +289,7 @@ def run_all_experiments(
             "num_queries_evaluated": len(query_texts)
         },
         "baseline_supervised": {
-            "model_type": "Supervised 3D CNN (ResNet3D Backbone)",
+            "model_type": "Supervised 3D CNN + keyword-to-class query mapping",
             "mAP": round(baseline_metrics["mAP"], 4),
             "Recall@1": round(baseline_metrics["Recall@1"], 4),
             "Recall@3": round(baseline_metrics["Recall@3"], 4),
@@ -277,19 +299,23 @@ def run_all_experiments(
             "peak_ram_mb": baseline_profile["peak_ram_mb"],
             "latency_ms": baseline_profile["latency_ms_mean"],
             "parameters": baseline_profile["total_parameters"],
-            "description": "Supervised volume classification baseline mapped to clinical queries via keyword-to-posterior weighting."
+            "description": "Supervised volume classification baseline mapped to clinical queries via keyword-to-posterior weighting. Not a native multimodal vision-language model."
         },
         "ablation_3d_mae_reconstruction": {
             "model_type": "3D-MAE (Reconstruction-Only, Unaligned)",
             "mask_ratio": 0.75,
             "recon_loss_mse": round(mae_mean_recon_loss, 4),
-            "unaligned_mAP": round(mae_metrics["mAP"], 4),
+            "retrieval_status": "Not applicable without cross-modal alignment",
+            "mAP": None,
+            "Recall@1": None,
+            "Recall@3": None,
+            "Recall@5": None,
             "memory_type": mae_profile["memory_type"],
             "peak_vram_mb": mae_profile["peak_vram_mb"],
             "peak_ram_mb": mae_profile["peak_ram_mb"],
             "latency_ms": mae_profile["latency_ms_mean"],
             "parameters": mae_profile["total_parameters"],
-            "description": "Evaluates pure self-supervised 3D visual representation learning without text alignment."
+            "description": "Evaluates self-supervised 3D visual representation learning. Cross-modal retrieval is not applicable because visual embeddings are not aligned to the text space."
         },
         "proposed_multimodal_mae": {
             "model_type": "3D-MAE (75% Mask) + Symmetric InfoNCE Contrastive Aligner",
@@ -298,6 +324,8 @@ def run_all_experiments(
             "Recall@3": round(proposed_metrics["Recall@3"], 4),
             "Recall@5": round(proposed_metrics["Recall@5"], 4),
             "loco_cv_recall1": round(loco_mean_recall1, 4),
+            "loco_cv_recall3": round(loco_mean_recall3, 4),
+            "loco_cv_recall5": round(loco_mean_recall5, 4),
             "memory_type": aligner_profile["memory_type"],
             "peak_vram_mb": aligner_profile["peak_vram_mb"],
             "peak_ram_mb": aligner_profile["peak_ram_mb"],

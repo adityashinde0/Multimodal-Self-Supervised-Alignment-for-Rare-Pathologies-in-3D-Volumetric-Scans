@@ -158,7 +158,7 @@ Symmetric InfoNCE Contrastive Alignment
 ```
 
 Status:
-`done` (mAP: 1.0000, Recall@1: 1.0000, Recall@3: 1.0000, Recall@5: 1.0000, LOCO CV Recall@1: 0.4000, Peak VRAM: 122.54 MB, Latency: 4.01 ms, Throughput: 249.7 vol/sec, +160.87% improvement over baseline)
+`done` (mAP: 1.0000, Recall@1: 1.0000, Recall@3: 1.0000, Recall@5: 1.0000, LOCO CV: R@1 0.2000, R@3 0.6000, R@5 1.0000, Peak VRAM: 122.54 MB, Latency: 3.64 ms, Throughput: 274.65 vol/sec, +160.87% improvement over baseline)
 
 ---
 
@@ -171,7 +171,7 @@ Optimized Attention (PyTorch native SDPA)
 ```
 
 Status:
-`done` (Inference latency 4.01 ms on RTX 3050, peak GPU memory 122.54 MB, far below 24 GB limit; custom Triton kernel not needed based on profiling evidence)
+`done` (Inference latency 3.64 ms on RTX 3050, peak GPU memory 122.54 MB, far below 24 GB limit; custom Triton kernel not needed based on profiling evidence)
 
 ---
 
@@ -186,12 +186,12 @@ Status:
 - Training configuration: AdamW optimizer, lr=1e-3, CosineAnnealingLR scheduler, InfoNCE temperature $\tau=0.07$, MAE reconstruction loss weight $\lambda=0.2$, Seed=42.
 - Baseline architecture: Supervised 3D CNN with BatchNorm and classification head (295,173 params).
 - Baseline mAP: **0.3833**.
-- 3D-MAE Ablation mAP: **0.3950**.
+- 3D-MAE Ablation: Recon MSE: **0.9960**, Cross-Modal Text Retrieval: **N/A (unaligned)**.
 - Proposed mAP: **1.0000**.
 - mAP improvement calculation: $\frac{1.0000 - 0.3833}{0.3833} \times 100\% = \mathbf{+160.87\%}$.
 - Recall@K: Recall@1: 1.0000, Recall@3: 1.0000, Recall@5: 1.0000.
-- LOCO CV Recall@1: 0.4000 across novel unseen pathologies.
+- LOCO CV Metrics: Mean Recall@1: **0.2000**, Mean Recall@3: **0.6000**, Mean Recall@5: **1.0000** across 10 held-out query evaluations.
 - Peak inference memory: **122.54 MB GPU VRAM on NVIDIA GeForce RTX 3050** ($\le 24\text{ GB}$ requirement verified).
-- Inference latency: **4.01 ms** per scan (throughput: 249.7 vol/sec).
+- Inference latency: **3.64 ms** per scan (throughput: 274.65 vol/sec).
 - Hardware configuration: GPU (NVIDIA GeForce RTX 3050 4GB Laptop GPU, CUDA 12.4, PyTorch 2.6.0+cu124).
 - Ablation results: 3D-MAE pretraining reconstructs volumetric topology; InfoNCE alignment maps text queries into the shared metric space, yielding the +160.87% gain.
