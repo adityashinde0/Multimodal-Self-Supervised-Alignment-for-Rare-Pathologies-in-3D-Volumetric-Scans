@@ -17,7 +17,7 @@
   <strong>A self-supervised 3D vision-language framework that learns anatomical spatial continuity from raw 3D CT/MRI scans and paired unstructured radiology reports, unlocking zero-shot diagnostic retrieval for rare pathologies without requiring manual voxel annotations.</strong>
 </p>
 
-[Key Capabilities](#-key-capabilities) • [System Architecture](#-system-architecture) • [Benchmark Evidence](#-benchmark-evidence) • [Interactive Web App](#-interactive-radiology-light-box-web-application) • [Quick Start](#-quick-start) • [Jury Defense FAQ](file:///c:/Users/Shind/OneDrive/Desktop/PS-007-GT/DEFENSE_FAQ.md)
+[Key Capabilities](#-key-capabilities) • [System Architecture](#-system-architecture) • [Benchmark Evidence](#-benchmark-evidence) • [Interactive Web App](#-interactive-radiology-light-box-web-application) • [Quick Start](#-quick-start) • [Jury Defense FAQ](DEFENSE_FAQ.md)
 
 </div>
 
@@ -135,7 +135,7 @@ $$\mathcal{L}_{\text{total}} = \frac{1}{2} \left( \mathcal{L}_{v \to t} + \mathc
 
 ## 📊 Benchmark Evidence
  
-All empirical metrics were automatically measured on **NVIDIA GeForce RTX 3050 Laptop GPU (CUDA:0)** using PyTorch 2.6.0+cu124 and persisted in the authoritative artifact [`artifacts/metrics/benchmark_results.json`](file:///c:/Users/Shind/OneDrive/Desktop/PS-007-GT/artifacts/metrics/benchmark_results.json).
+All empirical metrics were automatically measured on **NVIDIA GeForce RTX 3050 Laptop GPU (CUDA:0)** using PyTorch 2.6.0+cu124 and persisted in the authoritative artifact [`artifacts/metrics/benchmark_results.json`](artifacts/metrics/benchmark_results.json).
 
 ### 1. Challenge Search Gallery Performance (5 Curated Cases, 10 Diagnostic Queries)
 
@@ -263,12 +263,16 @@ PS-007-GT/
 
 ## 🚀 Quick Start
 
-### 1. Installation
+### 1. Environment & Installation
 
-Requires Python 3.10+ with PyTorch and HuggingFace Transformers:
+Activate the Python virtual environment:
 
 ```bash
-pip install torch transformers numpy scikit-learn scipy
+# Linux / WSL
+source ~/.venvs/ps007/bin/activate
+
+# Or install dependencies in a fresh environment
+pip install torch transformers numpy scikit-learn scipy pytest
 ```
 
 ### 2. ⚡ 1-Click System Audit & Jury Verification (<10s)
@@ -284,7 +288,9 @@ python verify_all.py
 Verifies volume loading, 3D patch tokenization, exact 75% masking, MAE reconstruction, and InfoNCE loss:
 
 ```bash
-python -m unittest tests/test_pipeline.py -v
+python -m pytest tests/test_pipeline.py -v
+# Or via unittest:
+# python -m unittest tests/test_pipeline.py -v
 ```
 ```text
 test_01_dataset_loading_and_split_isolation ... ok

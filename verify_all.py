@@ -13,10 +13,12 @@ import sys
 import time
 import json
 import unittest
+import warnings
 
 # Suppress noise
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+warnings.filterwarnings("ignore")
 
 # Reconfigure stdout/stderr for cross-platform UTF-8 terminal support
 if hasattr(sys.stdout, "reconfigure"):
