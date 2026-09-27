@@ -1,3 +1,4 @@
+import hashlib
 import re
 import torch
 import torch.nn as nn
@@ -6,9 +7,9 @@ from .attention import TransformerBlock
 
 class LightweightClinicalTextEncoder(nn.Module):
     """
-    Offline/lightweight clinical text encoder based on clinical vocabulary hashing
+    Offline/lightweight clinical text encoder based on deterministic SHA-256 vocabulary hashing
     and a multi-head self-attention transformer.
-    Guarantees deterministic, local execution without requiring external model weights.
+    Guarantees deterministic, cross-process execution without requiring external model weights.
     """
     def __init__(self, vocab_size=8192, embed_dim=128, depth=2, num_heads=4, max_len=64):
         super().__init__()
@@ -29,8 +30,8 @@ class LightweightClinicalTextEncoder(nn.Module):
         words = re.findall(r"\b\w+\b", text.lower())
         token_ids = []
         for w in words[:self.max_len]:
-            # Deterministic hash to vocab space
-            h = abs(hash(w)) % (self.vocab_size - 1) + 1  # 0 reserved for pad
+            # Stable deterministic SHA-256 hash to vocab space (independent of PYTHONHASHSEED)
+            h = int(hashlib.sha256(w.encode("utf-8")).hexdigest(), 16) % (self.vocab_size - 1) + 1  # 0 reserved for pad
             token_ids.append(h)
         if len(token_ids) == 0:
             token_ids = [1]

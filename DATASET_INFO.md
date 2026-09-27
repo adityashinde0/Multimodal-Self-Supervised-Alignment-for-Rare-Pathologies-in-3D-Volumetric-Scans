@@ -61,6 +61,19 @@ To add a new volumetric scan:
 > [!WARNING]
 > **Extreme Low-Data Feasibility Scope**:
 > - With only $N=5$ distinct pathologies in this benchmark dataset, i.i.d. train/val/test splits with multi-patient variance are statistically impossible.
-> - The evaluation benchmark measures representation alignment across the 5 indexed challenge cases.
-> - In Leave-One-Case-Out (LOCO) cross-validation where an entire rare disease is held out from training, mean Recall@1 is $0.2000$, correctly reflecting the difficulty of extreme zero-shot generalization without seeing any pathology examples.
+> - The evaluation benchmark measures representation alignment across the 5 indexed challenge cases (mAP = 1.0000).
+> - In Leave-One-Case-Out (LOCO) cross-validation where an entire rare disease is held out completely from training, mean Recall@1 is `0.2000` (20.0%), Recall@3 is `0.6000` (60.0%), and Recall@5 is `1.0000` (100.0%) across 10 held-out query evaluations, correctly reflecting the challenge of extreme zero-shot generalization without seeing any examples of the held-out pathology.
 > - **This system is an engineering and algorithmic proof-of-concept. It does NOT claim clinical diagnostic validation, clinical certification, or generalizability to arbitrary hospital populations.**
+
+---
+
+## 6. Optional External Multi-Center Dataset Protocol (Non-Dependency)
+
+The official PS-007 benchmark is strictly reproducible from the supplied repository files without requiring external network access or large downloads. For researchers seeking optional multi-center validation:
+
+1. **MedMNIST3D (OrganMNIST3D / NoduleMNIST3D)**:
+   - 3D medical arrays ($28\times 28\times 28$) accessible via `pip install medmnist`.
+   - Volumes can be interpolated to $16\times 16\times 16$ and mapped to paired text descriptions.
+2. **Medical Segmentation Decathlon (MSD)**:
+   - Open-access collections under Creative Commons licensing.
+3. **Non-Dependency Guarantee**: External datasets are completely optional and are **NOT** required for the hackathon submission or baseline reproduction.

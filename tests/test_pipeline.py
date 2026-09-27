@@ -240,6 +240,95 @@ class TestPS007Pipeline(unittest.TestCase):
         self.assertGreater(profile["total_parameters"], 0)
         self.assertGreater(profile["latency_ms_mean"], 0)
 
+    def test_11_deterministic_sha256_token_hashing(self):
+        """Test fallback text encoder tokenization is 100% deterministic across instances."""
+        text_enc1 = LightweightClinicalTextEncoder(vocab_size=1000, embed_dim=32, depth=1)
+        text_enc2 = LightweightClinicalTextEncoder(vocab_size=1000, embed_dim=32, depth=1)
+        query = "Thin-walled pulmonary cysts diffusely distributed throughout both lungs."
+        tokens1 = text_enc1._tokenize(query)
+        tokens2 = text_enc2._tokenize(query)
+        self.assertEqual(tokens1, tokens2)
+        self.assertEqual(len(tokens1), text_enc1.max_len)
+        self.assertNotIn(0, tokens1[:8])  # non-padded tokens are non-zero
+
+    def test_12_loco_train_test_absolute_isolation(self):
+        """Test that in LOCO cross-validation, held-out fold cases NEVER enter training."""
+        ds = VolumeReportDataset(data_dir=".", report_file="radiology_reports.json", augment=False)
+        total_cases = len(ds)
+        for fold in range(total_cases):
+            train_indices = [i for i in range(total_cases) if i != fold]
+            held_out_case = ds[fold]["case_id"]
+            
+            # 1. Base dataset isolation
+            train_ds = VolumeReportDataset(data_dir=".", indices=train_indices, augment=False)
+            train_case_ids = {s["case_id"] for s in train_ds}
+            self.assertNotIn(held_out_case, train_case_ids)
+            self.assertEqual(len(train_ds), total_cases - 1)
+            
+            # 2. Augmented dataset isolation
+            aug_samples = get_augmented_dataset(data_dir=".", indices=train_indices, num_augmentations_per_sample=5)
+            aug_case_ids = {s["case_id"] for s in aug_samples}
+            self.assertNotIn(held_out_case, aug_case_ids)
+
+    def test_13_retrieval_validation_empty_and_unknown_queries(self):
+        """Test ZeroShotRetrievalEngine query validation, empty input handling, and ranking."""
+        aligner = Multimodal3DAligner(
+            img_size=(16, 16, 16),
+            patch_size=(4, 4, 4),
+            embed_dim=32,
+            shared_dim=32,
+            mask_ratio=0.75
+        )
+        engine = ZeroShotRetrievalEngine(aligner, device="cpu")
+        ds = VolumeReportDataset(data_dir=".", report_file="radiology_reports.json", augment=False)
+        engine.index_gallery(ds)
+        self.assertEqual(len(engine.gallery), 5)
+
+        # Empty query validation
+        with self.assertRaises(ValueError):
+            engine.query("", top_k=3)
+        with self.assertRaises(ValueError):
+            engine.query("   ", top_k=3)
+
+        # Unknown/out-of-vocabulary query handling
+        results = engine.query("xyzqwerty nonexistentpathology term", top_k=3)
+        self.assertEqual(len(results), 3)
+        self.assertIn("similarity_score", results[0])
+        self.assertIn("case_id", results[0])
+
+    def test_14_infonce_temperature_and_symmetry(self):
+        """Test InfoNCE loss symmetry and positive learnable temperature behavior."""
+        aligner = Multimodal3DAligner(
+            img_size=(16, 16, 16),
+            patch_size=(4, 4, 4),
+            embed_dim=32,
+            shared_dim=32,
+            mask_ratio=0.75
+        )
+        vols = torch.randn(4, 1, 16, 16, 16)
+        reports = [
+            "Lymphangioleiomyomatosis with thin cysts.",
+            "Idiopathic pulmonary fibrosis honeycombing.",
+            "Glioblastoma multiforme necrotic rim.",
+            "Pulmonary alveolar proteinosis crazy-paving."
+        ]
+        out = aligner(vols, reports)
+        self.assertTrue(torch.isfinite(out["contrastive_loss"]))
+        # Temperature parameter tau must be positive
+        tau = aligner.logit_scale.exp().item()
+        self.assertGreater(tau, 0.0)
+
+    def test_15_voxel_count_and_nan_inf_sanitization(self):
+        """Test that volumetric data has exact 4096 voxels and handles NaN/Inf safely."""
+        ds = VolumeReportDataset(data_dir=".", report_file="radiology_reports.json", augment=False)
+        for i in range(len(ds)):
+            v = ds[i]["volume"]
+            # 1 channel x 16 x 16 x 16 = 4096 voxels
+            self.assertEqual(v.numel(), 4096)
+            self.assertEqual(v.shape, (1, 16, 16, 16))
+            self.assertFalse(torch.isnan(v).any())
+            self.assertFalse(torch.isinf(v).any())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -351,7 +351,7 @@
     </div>
     <div class="vital">
       <p class="vital__label">Inference Latency</p>
-      <p class="vital__value" id="vitalLatency">4.01<span>ms</span></p>
+      <p class="vital__value" id="vitalLatency">3.64<span>ms</span></p>
       <canvas class="vital__spark" data-spark="0.9,0.7,0.55,0.4,0.3,0.25,0.15" data-invert="1"></canvas>
     </div>
     <div class="vital">
@@ -363,14 +363,14 @@
 
   <div class="benchmark-compare" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
     <div class="compare-card">
-      <div class="compare-card__title">Baseline 1 — Supervised 3D CNN</div>
+      <div class="compare-card__title">Baseline 1 — Supervised 3D CNN + Keywords</div>
       <div class="compare-card__metric">0.383<span>mAP</span></div>
       <p class="compare-card__desc">Supervised 3D CNN classifier mapped to clinical queries via keyword-to-posterior weighting. Fails on complex anatomical paraphrases (Recall@1: 0.0%).</p>
     </div>
     <div class="compare-card">
       <div class="compare-card__title">Baseline 2 — 3D-MAE (Reconstruction-Only)</div>
-      <div class="compare-card__metric">0.395<span>mAP</span></div>
-      <p class="compare-card__desc">Ablation with 75% masked autoencoding only. Learns volumetric features without text alignment; lacks language grounding for diagnostic queries.</p>
+      <div class="compare-card__metric">MSE 0.996<span>Recon</span></div>
+      <p class="compare-card__desc">Ablation with 75% masked autoencoding only. Learns self-supervised 3D visual representations (MSE = 0.9960). Cross-modal retrieval is <strong>N/A</strong> without joint multimodal text alignment.</p>
     </div>
     <div class="compare-card compare-card--winner">
       <div class="compare-card__title">Proposed 3D-MAE Multimodal Aligner</div>
@@ -379,7 +379,7 @@
     </div>
   </div>
 
-  <p class="vitals-footnote">Proof-of-Concept 5-case search gallery protocol evaluated on NVIDIA RTX 3050 GPU (CUDA:0). 5-Fold Leave-One-Case-Out cross-validation yields 0.400 Recall@1 across novel unseen pathologies. Peak GPU VRAM: 122.54 MB (&le; 24 GB hardware target verified).</p>
+  <p class="vitals-footnote">Proof-of-Concept 5-case search gallery protocol evaluated on NVIDIA RTX 3050 GPU (CUDA:0). 5-Fold Leave-One-Case-Out cross-validation across 10 held-out queries yields Recall@1: 0.200, Recall@3: 0.600, Recall@5: 1.000 on novel unseen pathologies. Peak GPU VRAM: 122.54 MB (&le; 24 GB hardware target verified).</p>
 </section>
 
 </main>

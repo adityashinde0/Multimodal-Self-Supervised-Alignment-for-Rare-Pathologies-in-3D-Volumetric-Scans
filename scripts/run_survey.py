@@ -173,13 +173,15 @@ def survey():
     with open(metrics_file, "r") as f:
         metrics = json.load(f)
     print(f"  ✓ Baseline mAP: {metrics['baseline_supervised']['mAP']:.4f}")
+    print(f"  ✓ 3D-MAE Recon Loss (MSE): {metrics['ablation_3d_mae_reconstruction']['recon_loss_mse']:.4f} (Text Retrieval: {metrics['ablation_3d_mae_reconstruction']['retrieval_status']})")
     print(f"  ✓ Proposed mAP: {metrics['proposed_multimodal_mae']['mAP']:.4f}")
     print(f"  ✓ Relative mAP Gain: +{metrics['comparison']['relative_improvement_pct']:.1f}% (Target: >= +15.0%)")
+    print(f"  ✓ LOCO Cross-Val: R@1={metrics['proposed_multimodal_mae']['loco_cv_recall1']:.2f}, R@3={metrics['proposed_multimodal_mae']['loco_cv_recall3']:.2f}, R@5={metrics['proposed_multimodal_mae']['loco_cv_recall5']:.2f}")
     mem = metrics['proposed_multimodal_mae']['peak_vram_mb'] or metrics['proposed_multimodal_mae']['peak_ram_mb']
     mem_type = metrics['proposed_multimodal_mae']['memory_type'].upper()
     print(f"  ✓ Memory ({mem_type}): {mem:.2f} MB (Target: <= 24,000 MB)")
     print(f"  ✓ Latency: {metrics['proposed_multimodal_mae']['latency_ms']:.2f} ms")
-    results["benchmarks"] = f"PASSED (mAP Gain: +{metrics['comparison']['relative_improvement_pct']:.1f}%, RAM: {mem:.2f} MB)"
+    results["benchmarks"] = f"PASSED (mAP Gain: +{metrics['comparison']['relative_improvement_pct']:.1f}%, VRAM: {mem:.2f} MB)"
 
     print("\n" + "=" * 75)
     print("                    SURVEY SUMMARY: ALL 8/8 CHECKS PASSED")

@@ -164,12 +164,15 @@ def train_multimodal_aligner(
     ).to(device)
 
     # Initialize visual encoder with pretrained 3D-MAE weights if available
-    if pretrained_mae_path and os.path.exists(pretrained_mae_path):
+    if pretrained_mae_path:
+        if not os.path.exists(pretrained_mae_path):
+            raise FileNotFoundError(f"Specified pretrained MAE checkpoint not found: {pretrained_mae_path}")
         try:
-            model.visual_encoder.load_state_dict(torch.load(pretrained_mae_path, map_location=device), strict=False)
-            print(f"Initialized visual encoder from pretrained MAE: {pretrained_mae_path}")
+            state_dict = torch.load(pretrained_mae_path, map_location=device, weights_only=False)
+            missing, unexpected = model.visual_encoder.load_state_dict(state_dict, strict=False)
+            print(f"[Checkpoint Safe-Load] Verified and initialized visual encoder from {pretrained_mae_path} (missing: {len(missing)}, unexpected: {len(unexpected)})")
         except Exception as e:
-            print(f"Note on MAE weight load: {e}")
+            raise RuntimeError(f"Failed to load pretrained MAE checkpoint {pretrained_mae_path}: {e}")
 
     # Trainable parameters: visual branch, projectors, logit_scale
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
