@@ -72,8 +72,10 @@ def run_verification():
     print("\n[STAGE 3/4] Auditing Trained Model Checkpoints & Invariants...")
     ckpt_path = os.path.join("artifacts", "checkpoints", "multimodal_aligner.pt")
     if not os.path.exists(ckpt_path):
-        print(f"  ✗ Checkpoint missing at: {ckpt_path}")
-        return False
+        print(f"  ⚠ Checkpoint not found at: {ckpt_path}")
+        print("  ⚡ Auto-generating checkpoints via run_experiments.py (~35s)...")
+        import subprocess
+        subprocess.run([sys.executable, "run_experiments.py"], check=True)
     
     ckpt_size_mb = os.path.getsize(ckpt_path) / (1024 * 1024)
     print(f"  ✓ Trained Aligner Checkpoint: {ckpt_path} ({ckpt_size_mb:.2f} MB)")
